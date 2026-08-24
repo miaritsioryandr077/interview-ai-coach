@@ -1,0 +1,3 @@
+"""
+InterviewAI Coach App Package
+"""
