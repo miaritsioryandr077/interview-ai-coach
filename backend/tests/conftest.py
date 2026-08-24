@@ -7,6 +7,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.main import app
 from app.core.database import get_db
+from app.db.base import Base
 
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
 
@@ -26,6 +27,16 @@ def override_get_db() -> Generator[Session, None, None]:
         db.close()
 
 
+@pytest.fixture(scope="module", autouse=True)
+def setup_db() -> Generator[None, None, None]:
+    """
+    Create database tables before tests run and drop after module completion.
+    """
+    Base.metadata.create_all(bind=engine)
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+
 @pytest.fixture(scope="module")
 def client() -> Generator[TestClient, None, None]:
     """
@@ -35,4 +46,3 @@ def client() -> Generator[TestClient, None, None]:
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
-
