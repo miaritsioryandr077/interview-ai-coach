@@ -11,7 +11,7 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Set CORS origins
+# CORS middleware configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,10 +27,18 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 @app.get("/", tags=["Root"])
 def root() -> dict[str, str]:
     """
-    Root endpoint returning welcome message and documentation links.
+    Root endpoint returning API metadata.
     """
     return {
         "message": f"Welcome to {settings.PROJECT_NAME}",
         "docs": "/docs",
-        "health": f"{settings.API_V1_STR}/health",
+        "health": "/health",
     }
+
+
+@app.get("/health", tags=["Health"], summary="Top-level Health Check")
+def health_check() -> dict[str, str]:
+    """
+    Simple health check endpoint returning API status.
+    """
+    return {"status": "healthy"}
