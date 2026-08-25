@@ -14,5 +14,5 @@ class Base(DeclarativeBase):
         return cls.__name__.lower()
 
 
-# Import all models here so Alembic & SQLAlchemy register them
-from app.models.user import User  # noqa: F401
+# NE PAS importer les modèles ici !
+# Les modèles seront importés dans app/models/__init__.py

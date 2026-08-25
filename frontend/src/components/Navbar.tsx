@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Bot, LogOut, User as UserIcon, Sparkles } from 'lucide-react';
+import { FileText } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -37,10 +38,21 @@ export const Navbar: React.FC = () => {
                 Dashboard
               </Link>
 
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800/80 border border-gray-700 text-sm text-gray-200">
+              <Link
+                to="/documents"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition"
+              >
+                <FileText className="w-4 h-4 text-brand-500" />
+                Documents
+              </Link>
+
+              <Link
+                to="/profile"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-800/80 border border-gray-700 text-sm text-gray-200 hover:border-brand-500/60 hover:bg-gray-700/80 transition"
+              >
                 <UserIcon className="w-4 h-4 text-brand-500" />
                 <span className="font-semibold">{user.full_name || user.email}</span>
-              </div>
+              </Link>
 
               <button
                 onClick={handleLogout}

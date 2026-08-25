@@ -1,6 +1,8 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Sparkles, CheckCircle2, ShieldCheck, User as UserIcon, Calendar, Mail } from 'lucide-react';
+import { Sparkles, CheckCircle2, ShieldCheck, User as UserIcon, Calendar, Mail, ArrowRight, BookOpen } from 'lucide-react';
+import { FileText, Plus } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const { user } = useAuth();
@@ -43,17 +45,33 @@ export const Dashboard: React.FC = () => {
               <span className="text-gray-400 flex items-center gap-2">
                 <Mail className="w-4 h-4" /> Email:
               </span>
-              <span className="font-medium text-white">{user?.email}</span>
+              <span className="font-medium text-white truncate max-w-[150px]">{user?.email}</span>
             </div>
             <div className="flex items-center justify-between border-b border-gray-800/80 pb-2">
               <span className="text-gray-400 flex items-center gap-2">
                 <Calendar className="w-4 h-4" /> Inscrit le:
               </span>
               <span className="font-medium text-white">
-                {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'Actif'}
+                {user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'Actif'}
               </span>
             </div>
+            {user?.education_level && (
+              <div className="flex items-center justify-between border-b border-gray-800/80 pb-2">
+                <span className="text-gray-400 flex items-center gap-2">
+                  <BookOpen className="w-4 h-4" /> Niveau:
+                </span>
+                <span className="font-medium text-white capitalize">{user.education_level}</span>
+              </div>
+            )}
           </div>
+          <Link
+            to="/profile"
+            className="flex items-center justify-center gap-2 w-full py-2.5 mt-2 rounded-xl text-sm font-semibold text-brand-400 border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 hover:border-brand-500/60 transition"
+          >
+            <UserIcon className="w-4 h-4" />
+            {user?.first_name ? 'Modifier le profil' : 'Compléter le profil'}
+            <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
 
         {/* Card 2: Security Token Status */}
@@ -94,6 +112,31 @@ export const Dashboard: React.FC = () => {
             </p>
           </div>
         </div>
+
+{/* Card 4: Documents */}
+<div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
+  <div className="flex items-center gap-3">
+    <div className="p-3 bg-brand-600/20 text-brand-400 rounded-xl">
+      <FileText className="w-6 h-6" />
+    </div>
+    <div>
+      <h3 className="text-lg font-bold text-white">Mes Documents</h3>
+      <p className="text-xs text-gray-400">CV et offres d'emploi</p>
+    </div>
+  </div>
+  <div className="space-y-2 pt-2 text-sm text-gray-300">
+    <p>Téléchargez votre CV pour commencer vos simulations.</p>
+  </div>
+  <Link
+    to="/documents"
+    className="flex items-center justify-center gap-2 w-full py-2.5 mt-2 rounded-xl text-sm font-semibold text-brand-400 border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 hover:border-brand-500/60 transition"
+  >
+    <Plus className="w-4 h-4" />
+    Gérer mes documents
+    <ArrowRight className="w-4 h-4" />
+  </Link>
+</div>
+
       </div>
     </div>
   );

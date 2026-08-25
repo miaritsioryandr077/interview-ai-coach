@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "interview_ai_coach"
     
+    
     DATABASE_URL: Optional[str] = None
 
     model_config = SettingsConfigDict(
@@ -39,3 +40,7 @@ class Settings(BaseSettings):
 
 settings = Settings()
 
+# Ajouter ces attributs à la classe Settings :
+UPLOAD_DIR: str = "uploads"
+MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
+ALLOWED_MIME_TYPES: list = ["application/pdf"]

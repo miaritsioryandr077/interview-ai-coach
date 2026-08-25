@@ -6,6 +6,8 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
+import { Profile } from './pages/Profile';
+import { Documents } from './pages/Documents';
 
 export const App: React.FC = () => {
   return (
@@ -26,7 +28,23 @@ export const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <Profile />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
+              <Route
+                path="/documents"
+                element={
+                  <ProtectedRoute>
+                    <Documents />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
           </main>
         </div>
