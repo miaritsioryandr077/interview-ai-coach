@@ -34,42 +34,42 @@ export const UploadCV: React.FC<UploadCVProps> = ({ onUploadSuccess }) => {
     setSuccess(false);
   };
 
-  const handleUpload = async () => {
-    if (!file) return;
+const handleUpload = async () => {
+  if (!file) return;
+  
+  setUploading(true);
+  setError(null);
+  setSuccess(false);
+  
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
     
-    setUploading(true);
-    setError(null);
-    setSuccess(false);
+    const token = localStorage.getItem('token');
     
-    try {
-      const response = await fetch('/api/v1/documents/upload/cv', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: (() => {
-          const formData = new FormData();
-          formData.append('file', file);
-          return formData;
-        })(),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || 'Upload failed');
-      }
-      
-      await response.json();
-      setSuccess(true);
-      setFile(null);
-      onUploadSuccess();
-    } catch (err: any) {
-      setError(err.message || 'Une erreur est survenue');
-    } finally {
-      setUploading(false);
+    const response = await fetch('/api/v1/documents/upload/cv', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+      body: formData,
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.detail || 'Upload failed');
     }
-  };
-
+    
+    await response.json();
+    setSuccess(true);
+    setFile(null);
+    onUploadSuccess();
+  } catch (err: any) {
+    setError(err.message || 'Une erreur est survenue');
+  } finally {
+    setUploading(false);
+  }
+};
   const handleRemoveFile = () => {
     setFile(null);
     setError(null);

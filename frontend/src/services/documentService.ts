@@ -6,10 +6,13 @@ export const documentService = {
     const formData = new FormData();
     formData.append('file', file);
     
+    // Utiliser fetch directement mais avec le token
+    const token = localStorage.getItem('token');
     const response = await fetch('/api/v1/documents/upload/cv', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${token}`,
+        // Ne pas mettre 'Content-Type' car fetch le gère automatiquement avec FormData
       },
       body: formData,
     });
@@ -23,7 +26,7 @@ export const documentService = {
   },
   
   getMyDocuments: async (): Promise<Document[]> => {
-    return fetchApi<Document[]>('/documents');
+    return fetchApi<Document[]>('/documents/');
   },
   
   deleteDocument: async (id: number): Promise<void> => {

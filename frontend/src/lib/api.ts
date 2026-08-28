@@ -23,6 +23,15 @@ export async function fetchApi<T>(
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
+    // Si le status est 401, on peut déconnecter l'utilisateur
+    if (response.status === 401) {
+      // Déconnecter l'utilisateur si le token est invalide
+      localStorage.removeItem('token');
+      // Rediriger vers la page de connexion s'il n'y est pas déjà
+      if (window.location.pathname !== '/login' && window.location.pathname !== '/register') {
+        window.location.href = '/login';
+      }
+    }
     const errorMsg = data.detail || data.message || `Request failed with status ${response.status}`;
     throw new Error(errorMsg);
   }
