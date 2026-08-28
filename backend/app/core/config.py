@@ -9,7 +9,6 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "default_secret_key_change_me_in_production"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
 
-
     # PostgreSQL Database Settings
     POSTGRES_SERVER: str = "localhost"
     POSTGRES_PORT: int = 5432
@@ -17,8 +16,12 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres"
     POSTGRES_DB: str = "interview_ai_coach"
     
-    
     DATABASE_URL: Optional[str] = None
+    
+    # Upload Settings
+    UPLOAD_DIR: str = "uploads"
+    MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
+    ALLOWED_MIME_TYPES: list = ["application/pdf"]
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -39,8 +42,3 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-
-# Ajouter ces attributs à la classe Settings :
-UPLOAD_DIR: str = "uploads"
-MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
-ALLOWED_MIME_TYPES: list = ["application/pdf"]
