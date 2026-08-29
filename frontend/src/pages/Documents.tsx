@@ -3,7 +3,7 @@ import { UploadCV } from '../components/UploadCV';
 import { DocumentList } from '../components/DocumentList';
 import { documentService } from '../services/documentService';
 import { Document } from '../types/document';
-import { FileText } from 'lucide-react';
+import { FileText, Briefcase } from 'lucide-react';
 
 export const Documents: React.FC = () => {
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -46,12 +46,45 @@ export const Documents: React.FC = () => {
         </div>
       </div>
 
-      <UploadCV onUploadSuccess={loadDocuments} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Upload CV */}
+        <UploadCV 
+          onUploadSuccess={loadDocuments}
+          title="Uploader un CV"
+          uploadFunction={documentService.uploadCV}
+          successMessage="CV uploadé avec succès !"
+          buttonText="Envoyer mon CV"
+        />
+
+        {/* Upload Offre d'emploi */}
+        <UploadCV 
+          onUploadSuccess={loadDocuments} 
+          title="Uploader une offre d'emploi"
+          description="Format PDF uniquement (max 5 MB)"
+          uploadFunction={documentService.uploadJobOffer}
+          successMessage="Offre d'emploi uploadée avec succès !"
+          buttonText="Envoyer mon offre d'emploi"
+        />
+      </div>
 
       <div className="space-y-4">
-        <h2 className="text-xl font-bold text-white">Mes CV</h2>
+        <h2 className="text-xl font-bold text-white flex items-center gap-2">
+          Mes CV
+        </h2>
         <DocumentList
           documents={documents.filter(d => d.document_type === 'cv')}
+          onDelete={handleDelete}
+          loading={loading}
+        />
+      </div>
+
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold text-white flex items-center gap-2 mt-8">
+          <Briefcase className="w-5 h-5 text-brand-400" />
+          Mes offres d'emploi
+        </h2>
+        <DocumentList
+          documents={documents.filter(d => d.document_type === 'job_offer')}
           onDelete={handleDelete}
           loading={loading}
         />

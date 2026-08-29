@@ -10,6 +10,30 @@ from app.services.document import document_service
 
 router = APIRouter()
 
+# Ajoutez cette route en dessous de la fonction upload_cv :
+
+@router.post("/upload/job_offer", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
+async def upload_job_offer(
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload a Job Offer (PDF) for the authenticated user."""
+    if not file:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No file provided")
+    
+    doc = document_service.create_document(db, current_user, file, DocumentType.JOB_OFFER)
+    
+    return DocumentUploadResponse(
+        id=doc.id,
+        original_filename=doc.original_filename,
+        document_type=doc.document_type,
+        file_size=doc.file_size,
+        uploaded_at=doc.uploaded_at,
+        message="Job offer uploaded successfully"
+    )
+
+
 @router.post("/upload/cv", response_model=DocumentUploadResponse, status_code=status.HTTP_201_CREATED)
 async def upload_cv(
     file: UploadFile = File(...),
