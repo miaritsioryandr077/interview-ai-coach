@@ -17,6 +17,7 @@ class DocumentCreate(DocumentBase):
     user_id: int
     stored_filename: str
     file_path: str
+    extracted_text: Optional[str] = None
 
 class DocumentResponse(DocumentBase):
     id: int

@@ -71,3 +71,19 @@ def delete_document(
 ):
     """Delete a document (only if it belongs to the authenticated user)."""
     document_service.delete_document(db, current_user, document_id)
+
+@router.get("/{document_id}", response_model=DocumentResponse)
+def get_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Get a specific document (only if it belongs to the authenticated user)."""
+    from app.repositories.document import document_repository
+    doc = document_repository.get_by_id_and_user(db, document_id, current_user.id)
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found or you don't have permission"
+        )
+    return doc

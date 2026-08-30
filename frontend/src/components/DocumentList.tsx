@@ -1,5 +1,5 @@
 import React from 'react';
-import { File, Trash2, Calendar, FileText } from 'lucide-react';
+import { File, Trash2, Calendar, FileText, CheckCircle2 } from 'lucide-react';
 import { Document, DocumentType } from '../types/document';
 
 interface DocumentListProps {
@@ -54,6 +54,15 @@ export const DocumentList: React.FC<DocumentListProps> = ({ documents, onDelete,
                   <Calendar className="w-3 h-3" />
                   {new Date(doc.uploaded_at).toLocaleDateString('fr-FR')}
                 </div>
+                {doc.extracted_text && (
+                  <>
+                    <span>•</span>
+                    <span className="flex items-center gap-1 text-emerald-400 bg-emerald-400/10 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase tracking-wider">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Texte extrait
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>

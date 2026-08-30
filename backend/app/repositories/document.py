@@ -13,6 +13,7 @@ class DocumentRepository:
             file_path=document_in.file_path,
             file_size=document_in.file_size,
             mime_type=document_in.mime_type,
+            extracted_text=document_in.extracted_text,
         )
         db.add(db_document)
         db.commit()

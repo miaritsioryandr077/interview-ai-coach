@@ -10,6 +10,7 @@ from app.schemas.document import DocumentCreate, DocumentResponse
 from app.repositories.document import document_repository
 from app.core.config import settings
 import mimetypes
+from app.services.pdf_extractor import extract_text_from_pdf
 
 class DocumentService:
     ALLOWED_MIME_TYPES = ["application/pdf"]
@@ -76,6 +77,9 @@ class DocumentService:
         # Save physically
         stored_filename, file_path, mime_type = self.save_file(file, user.id, doc_type)
         
+        # Extraction du texte
+        extracted_text = extract_text_from_pdf(file_path)
+        
         # Create DB record
         doc_in = DocumentCreate(
             user_id=user.id,
@@ -85,6 +89,7 @@ class DocumentService:
             file_path=file_path,
             file_size=os.path.getsize(file_path),
             mime_type=mime_type,
+            extracted_text=extracted_text,
         )
         
         db_document = document_repository.create(db, doc_in)
