@@ -1,142 +1,149 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { Sparkles, CheckCircle2, ShieldCheck, User as UserIcon, Calendar, Mail, ArrowRight, BookOpen } from 'lucide-react';
-import { FileText, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Document } from '../types/document';
+import { Context } from '../types/context';
+import { documentService } from '../services/documentService';
+import { contextService } from '../services/contextService';
+import { BookOpen, PlusCircle, ArrowRight } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
-  const { user } = useAuth();
+  const [cvs, setCvs] = useState<Document[]>([]);
+  const [jobs, setJobs] = useState<Document[]>([]);
+  const [contexts, setContexts] = useState<Context[]>([]);
+  
+  const [selectedCv, setSelectedCv] = useState<string>('');
+  const [selectedJob, setSelectedJob] = useState<string>('');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const docs = await documentService.getMyDocuments();
+        setCvs(docs.filter(d => d.document_type === 'cv'));
+        setJobs(docs.filter(d => d.document_type === 'job_offer'));
+        
+        const ctxs = await contextService.getMyContexts();
+        setContexts(ctxs);
+      } catch (err) {
+        console.error("Erreur lors du chargement des données", err);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const handleCreateContext = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedCv || !selectedJob) return;
+    
+    try {
+      setLoading(true);
+      await contextService.createContext({
+        cv_id: parseInt(selectedCv),
+        job_id: parseInt(selectedJob),
+        notes
+      });
+      // Refresh contexts
+      const ctxs = await contextService.getMyContexts();
+      setContexts(ctxs);
+      
+      // Reset form
+      setSelectedCv('');
+      setSelectedJob('');
+      setNotes('');
+      alert("Préparation créée avec succès !");
+    } catch (error) {
+      alert("Erreur lors de la création de la préparation.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      {/* Welcome Banner */}
-      <div className="glass-card rounded-3xl p-8 border border-gray-800 relative overflow-hidden glow-effect">
-        <div className="absolute -right-10 -bottom-10 w-64 h-64 bg-brand-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/30 text-brand-400 text-xs font-semibold mb-4">
-              <Sparkles className="w-3.5 h-3.5" /> Espace Personnel Authentifié
-            </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
-              Bienvenue, {user?.full_name || 'Candidat'} !
-            </h1>
-            <p className="text-gray-400 mt-2 max-w-2xl text-sm md:text-base">
-              Votre authentification JWT de bout en bout est opérationnelle. Vous avez maintenant accès à votre tableau de bord de simulation d'entretiens par Intelligence Artificielle.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Profile & Status Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Card 1: Account Info */}
-        <div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-brand-600/20 text-brand-400 rounded-xl">
-              <UserIcon className="w-6 h-6" />
+    <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
+      <h1 className="text-3xl font-extrabold text-white">Dashboard & Préparations</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        {/* Colonne Gauche : Formulaire de création */}
+        <div className="glass-card p-6 rounded-2xl border border-gray-800">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-4">
+            <PlusCircle className="w-5 h-5 text-brand-400" />
+            Créer une préparation
+          </h2>
+          <form onSubmit={handleCreateContext} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Sélectionner votre CV</label>
+              <select 
+                value={selectedCv} 
+                onChange={e => setSelectedCv(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-brand-500 outline-none"
+                required
+              >
+                <option value="">-- Choisir un CV --</option>
+                {cvs.map(cv => <option key={cv.id} value={cv.id}>{cv.original_filename}</option>)}
+              </select>
             </div>
             <div>
-              <h3 className="text-lg font-bold text-white">Profil Utilisateur</h3>
-              <p className="text-xs text-gray-400">Informations de compte</p>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Sélectionner l'offre d'emploi</label>
+              <select 
+                value={selectedJob} 
+                onChange={e => setSelectedJob(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-brand-500 outline-none"
+                required
+              >
+                <option value="">-- Choisir une Offre --</option>
+                {jobs.map(job => <option key={job.id} value={job.id}>{job.original_filename}</option>)}
+              </select>
             </div>
-          </div>
-          <div className="space-y-3 pt-2 text-sm">
-            <div className="flex items-center justify-between border-b border-gray-800/80 pb-2">
-              <span className="text-gray-400 flex items-center gap-2">
-                <Mail className="w-4 h-4" /> Email:
-              </span>
-              <span className="font-medium text-white truncate max-w-[150px]">{user?.email}</span>
+            <div>
+              <label className="block text-sm font-medium text-gray-400 mb-1">Notes (Optionnel)</label>
+              <textarea 
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                className="w-full bg-gray-900 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-brand-500 outline-none"
+                rows={3}
+                placeholder="Ex: Je veux insister sur mes compétences cloud..."
+              />
             </div>
-            <div className="flex items-center justify-between border-b border-gray-800/80 pb-2">
-              <span className="text-gray-400 flex items-center gap-2">
-                <Calendar className="w-4 h-4" /> Inscrit le:
-              </span>
-              <span className="font-medium text-white">
-                {user?.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR') : 'Actif'}
-              </span>
+            <button 
+              type="submit" 
+              disabled={loading || !selectedCv || !selectedJob}
+              className="w-full py-3 bg-brand-600 hover:bg-brand-500 text-white font-semibold rounded-xl transition disabled:opacity-50"
+            >
+              {loading ? "Création en cours..." : "Créer la préparation"}
+            </button>
+          </form>
+        </div>
+
+        {/* Colonne Droite : Liste des préparations */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-4">
+            <BookOpen className="w-5 h-5 text-indigo-400" />
+            Mes préparations
+          </h2>
+          {contexts.length === 0 ? (
+            <div className="text-gray-400 p-4 border border-gray-800 rounded-xl bg-gray-900/50">
+              Aucune préparation pour l'instant.
             </div>
-            {user?.education_level && (
-              <div className="flex items-center justify-between border-b border-gray-800/80 pb-2">
-                <span className="text-gray-400 flex items-center gap-2">
-                  <BookOpen className="w-4 h-4" /> Niveau:
-                </span>
-                <span className="font-medium text-white capitalize">{user.education_level}</span>
+          ) : (
+            contexts.map(ctx => (
+              <div key={ctx.id} className="p-4 bg-gray-900/50 rounded-xl border border-gray-800 space-y-2">
+                <div className="text-sm text-gray-400 flex justify-between">
+                  <span>Créée le {new Date(ctx.created_at).toLocaleDateString()}</span>
+                  <span>ID: #{ctx.id}</span>
+                </div>
+                <div className="text-white">
+                  <p><strong>CV:</strong> {ctx.cv?.original_filename}</p>
+                  <p><strong>Offre:</strong> {ctx.job?.original_filename}</p>
+                </div>
+                {ctx.notes && (
+                  <p className="text-sm text-gray-400 italic">"{ctx.notes}"</p>
+                )}
               </div>
-            )}
-          </div>
-          <Link
-            to="/profile"
-            className="flex items-center justify-center gap-2 w-full py-2.5 mt-2 rounded-xl text-sm font-semibold text-brand-400 border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 hover:border-brand-500/60 transition"
-          >
-            <UserIcon className="w-4 h-4" />
-            {user?.first_name ? 'Modifier le profil' : 'Compléter le profil'}
-            <ArrowRight className="w-4 h-4" />
-          </Link>
+            ))
+          )}
         </div>
-
-        {/* Card 2: Security Token Status */}
-        <div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-emerald-500/20 text-emerald-400 rounded-xl">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">Sécurité JWT</h3>
-              <p className="text-xs text-gray-400">Jeton d'accès actif</p>
-            </div>
-          </div>
-          <div className="space-y-2 pt-2 text-sm">
-            <p className="text-gray-300">
-              Session vérifiée avec succès auprès de l'API FastAPI.
-            </p>
-            <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs pt-1">
-              <CheckCircle2 className="w-4 h-4" /> En-tête Authorization: Bearer valide
-            </div>
-          </div>
-        </div>
-
-        {/* Card 3: Next Module Teaser */}
-        <div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-indigo-500/20 text-indigo-400 rounded-xl">
-              <Sparkles className="w-6 h-6" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-white">Prochaines Étape</h3>
-              <p className="text-xs text-gray-400">Module de Simulation AI</p>
-            </div>
-          </div>
-          <div className="space-y-2 pt-2 text-sm text-gray-300">
-            <p>
-              Prêt pour l'intégration des modules de dépôt de CV/Offres et de simulation vidéo/vocale d'entretien.
-            </p>
-          </div>
-        </div>
-
-{/* Card 4: Documents */}
-<div className="glass-card rounded-2xl p-6 border border-gray-800 space-y-4">
-  <div className="flex items-center gap-3">
-    <div className="p-3 bg-brand-600/20 text-brand-400 rounded-xl">
-      <FileText className="w-6 h-6" />
-    </div>
-    <div>
-      <h3 className="text-lg font-bold text-white">Mes Documents</h3>
-      <p className="text-xs text-gray-400">CV et offres d'emploi</p>
-    </div>
-  </div>
-  <div className="space-y-2 pt-2 text-sm text-gray-300">
-    <p>Téléchargez votre CV pour commencer vos simulations.</p>
-  </div>
-  <Link
-    to="/documents"
-    className="flex items-center justify-center gap-2 w-full py-2.5 mt-2 rounded-xl text-sm font-semibold text-brand-400 border border-brand-500/30 bg-brand-500/10 hover:bg-brand-500/20 hover:border-brand-500/60 transition"
-  >
-    <Plus className="w-4 h-4" />
-    Gérer mes documents
-    <ArrowRight className="w-4 h-4" />
-  </Link>
-</div>
-
+        
       </div>
     </div>
   );
