@@ -23,6 +23,11 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
     ALLOWED_MIME_TYPES: list = ["application/pdf"]
 
+    # API Keys
+    OPENAI_API_KEY: Optional[str] = None
+    GROQ_API_KEY: Optional[str] = None
+    GEMINI_API_KEY: Optional[str] = None
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

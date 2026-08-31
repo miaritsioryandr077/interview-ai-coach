@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { Document } from '../types/document';
 import { Context } from '../types/context';
+import { Question } from '../types/question';
 import { documentService } from '../services/documentService';
 import { contextService } from '../services/contextService';
-import { BookOpen, PlusCircle, ArrowRight } from 'lucide-react';
+import { BookOpen, PlusCircle, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const [cvs, setCvs] = useState<Document[]>([]);
   const [jobs, setJobs] = useState<Document[]>([]);
   const [contexts, setContexts] = useState<Context[]>([]);
+  const [questionsMap, setQuestionsMap] = useState<Record<number, Question[]>>({});
+  const [generating, setGenerating] = useState<Record<number, boolean>>({});
+  const [error, setError] = useState<string | null>(null);
   
   const [selectedCv, setSelectedCv] = useState<string>('');
   const [selectedJob, setSelectedJob] = useState<string>('');
@@ -24,6 +28,20 @@ export const Dashboard: React.FC = () => {
         
         const ctxs = await contextService.getMyContexts();
         setContexts(ctxs);
+
+        // Load existing questions for each context
+        const qMap: Record<number, Question[]> = {};
+        for (const ctx of ctxs) {
+          try {
+            const qs = await contextService.getContextQuestions(ctx.id);
+            if (qs.length > 0) {
+              qMap[ctx.id] = qs;
+            }
+          } catch (err) {
+            // Ignore error if questions not yet generated
+          }
+        }
+        setQuestionsMap(qMap);
       } catch (err) {
         console.error("Erreur lors du chargement des données", err);
       }
@@ -51,10 +69,24 @@ export const Dashboard: React.FC = () => {
       setSelectedJob('');
       setNotes('');
       alert("Préparation créée avec succès !");
-    } catch (error) {
+    } catch (err: any) {
       alert("Erreur lors de la création de la préparation.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleGenerateQuestions = async (contextId: number) => {
+    try {
+      setGenerating(prev => ({ ...prev, [contextId]: true }));
+      setError(null);
+      const generatedQs = await contextService.generateQuestions(contextId);
+      setQuestionsMap(prev => ({ ...prev, [contextId]: generatedQs }));
+    } catch (err: any) {
+      console.error(err);
+      setError("Erreur lors de la génération des questions. Vérifiez que la clé API est bien configurée.");
+    } finally {
+      setGenerating(prev => ({ ...prev, [contextId]: false }));
     }
   };
 
@@ -62,10 +94,17 @@ export const Dashboard: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 py-10 space-y-8">
       <h1 className="text-3xl font-extrabold text-white">Dashboard & Préparations</h1>
       
+      {error && (
+        <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 px-4 py-3 rounded-lg border border-red-500/20">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          {error}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         
         {/* Colonne Gauche : Formulaire de création */}
-        <div className="glass-card p-6 rounded-2xl border border-gray-800">
+        <div className="glass-card p-6 rounded-2xl border border-gray-800 self-start">
           <h2 className="text-xl font-bold text-white flex items-center gap-2 mb-4">
             <PlusCircle className="w-5 h-5 text-brand-400" />
             Créer une préparation
@@ -127,17 +166,56 @@ export const Dashboard: React.FC = () => {
             </div>
           ) : (
             contexts.map(ctx => (
-              <div key={ctx.id} className="p-4 bg-gray-900/50 rounded-xl border border-gray-800 space-y-2">
+              <div key={ctx.id} className="p-5 bg-gray-900/50 rounded-xl border border-gray-800 space-y-4">
                 <div className="text-sm text-gray-400 flex justify-between">
                   <span>Créée le {new Date(ctx.created_at).toLocaleDateString()}</span>
                   <span>ID: #{ctx.id}</span>
                 </div>
-                <div className="text-white">
+                <div className="text-white bg-gray-800/50 p-3 rounded-lg text-sm">
                   <p><strong>CV:</strong> {ctx.cv?.original_filename}</p>
                   <p><strong>Offre:</strong> {ctx.job?.original_filename}</p>
+                  {ctx.notes && <p className="italic text-gray-400 mt-2">"{ctx.notes}"</p>}
                 </div>
-                {ctx.notes && (
-                  <p className="text-sm text-gray-400 italic">"{ctx.notes}"</p>
+                
+                {/* Generation Area */}
+                {!questionsMap[ctx.id] ? (
+                  <button
+                    onClick={() => handleGenerateQuestions(ctx.id)}
+                    disabled={generating[ctx.id]}
+                    className="w-full py-2.5 bg-indigo-600/20 text-indigo-400 hover:bg-indigo-600/30 font-semibold rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {generating[ctx.id] ? (
+                      <><Loader2 className="w-4 h-4 animate-spin" /> Génération en cours...</>
+                    ) : (
+                      <><Sparkles className="w-4 h-4" /> Générer les questions</>
+                    )}
+                  </button>
+                ) : (
+                  <div className="mt-4 pt-4 border-t border-gray-800">
+                    <h3 className="text-lg font-bold text-white mb-3 flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-400" />
+                      Questions générées
+                    </h3>
+                    <div className="space-y-3">
+                      {questionsMap[ctx.id].map((q, idx) => (
+                        <div key={q.id || idx} className="bg-gray-800/80 p-3 rounded-lg border border-gray-700">
+                          <div className="flex gap-2 mb-2 text-xs font-semibold uppercase tracking-wider">
+                            <span className="bg-brand-500/20 text-brand-400 px-2 py-0.5 rounded">
+                              {q.category}
+                            </span>
+                            <span className={`px-2 py-0.5 rounded ${
+                              q.difficulty === 'hard' ? 'bg-red-500/20 text-red-400' :
+                              q.difficulty === 'easy' ? 'bg-emerald-500/20 text-emerald-400' :
+                              'bg-amber-500/20 text-amber-400'
+                            }`}>
+                              {q.difficulty}
+                            </span>
+                          </div>
+                          <p className="text-gray-200 text-sm">{idx + 1}. {q.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 )}
               </div>
             ))

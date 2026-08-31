@@ -6,5 +6,6 @@ from app.db.base import Base
 from app.models.user import User
 from app.models.document import Document
 from app.models.context import Context
+from app.models.question import Question
 
-__all__ = ["Base", "User", "Document", "Context"]
+__all__ = ["Base", "User", "Document", "Context", "Question"]
