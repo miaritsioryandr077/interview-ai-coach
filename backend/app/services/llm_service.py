@@ -61,16 +61,28 @@ Réponds STRICTEMENT en JSON avec ce format:
                     headers={"Authorization": f"Bearer {self.api_key}"},
                     json={
                         "model": self.model,
-                        "response_format": {"type": "json_object"},
-                        "messages": [{"role": "user", "content": prompt}]
+                        "messages": [{"role": "user", "content": prompt}],
+                        "max_tokens": 1500
                     },
                     timeout=120.0
                 )
                 response.raise_for_status()
                 data = response.json()
-                return json.loads(data["choices"][0]["message"]["content"])
+                content = data["choices"][0]["message"]["content"]
+                
+                # Nettoyage si le LLM rajoute des backticks markdown (ex: ```json ... ```)
+                content = content.strip()
+                if content.startswith("```json"):
+                    content = content[7:]
+                if content.startswith("```"):
+                    content = content[3:]
+                if content.endswith("```"):
+                    content = content[:-3]
+                content = content.strip()
+                
+                return json.loads(content)
         except Exception as e:
-            logger.error(f"LLM Error: {e}")
-            raise HTTPException(status_code=502, detail=f"Erreur lors de la génération avec l'IA: {str(e)}")
+            logger.error(f"LLM Error: {repr(e)}")
+            raise HTTPException(status_code=502, detail=f"Erreur lors de la génération avec l'IA: {repr(e)}")
 
 llm_service = LLMService()
