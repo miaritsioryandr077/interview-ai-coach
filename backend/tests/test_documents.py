@@ -5,16 +5,18 @@ from sqlalchemy.orm import Session
 from app.main import app
 from app.core.database import get_db
 from app.models.user import User
+from app.schemas.user import UserCreate
 from app.services.auth import auth_service
-
 client = TestClient(app)
 
+import uuid
+
 def create_test_user(db: Session) -> User:
-    user_in = {
-        "email": "test@example.com",
-        "password": "testpassword",
-        "full_name": "Test User"
-    }
+    user_in = UserCreate(
+        email=f"test_{uuid.uuid4().hex}@example.com",
+        password="testpassword123",
+        full_name="Test User",
+    )
     return auth_service.register_user(db, user_in)
 
 def get_auth_token(db: Session) -> str:

@@ -8,6 +8,7 @@ import { Register } from './pages/Register';
 import { Dashboard } from './pages/Dashboard';
 import { Profile } from './pages/Profile';
 import { Documents } from './pages/Documents';
+import { InterviewSession } from './pages/InterviewSession';
 
 export const App: React.FC = () => {
   return (
@@ -42,6 +43,14 @@ export const App: React.FC = () => {
                 element={
                   <ProtectedRoute>
                     <Documents />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/interview/:sessionId"
+                element={
+                  <ProtectedRoute>
+                    <InterviewSession />
                   </ProtectedRoute>
                 }
               />

@@ -39,4 +39,8 @@ class QuestionRepository:
     def get_by_context_id(self, db: Session, context_id: int) -> List[Question]:
         return db.query(Question).filter(Question.context_id == context_id).order_by(Question.order_index.asc()).all()
 
+    def delete_by_context_id(self, db: Session, context_id: int) -> None:
+        db.query(Question).filter(Question.context_id == context_id).delete(synchronize_session=False)
+        db.commit()
+
 question_repository = QuestionRepository()

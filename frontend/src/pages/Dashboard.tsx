@@ -4,16 +4,20 @@ import { Context } from '../types/context';
 import { Question } from '../types/question';
 import { documentService } from '../services/documentService';
 import { contextService } from '../services/contextService';
-import { BookOpen, PlusCircle, Loader2, Sparkles, AlertCircle } from 'lucide-react';
+import { sessionService } from '../services/sessionService';
+import { useNavigate } from 'react-router-dom';
+import { BookOpen, PlusCircle, Loader2, Sparkles, AlertCircle, Play } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const [starting, setStarting] = useState<Record<number, boolean>>({});
   const [cvs, setCvs] = useState<Document[]>([]);
   const [jobs, setJobs] = useState<Document[]>([]);
   const [contexts, setContexts] = useState<Context[]>([]);
   const [questionsMap, setQuestionsMap] = useState<Record<number, Question[]>>({});
   const [generating, setGenerating] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
-  
+
   const [selectedCv, setSelectedCv] = useState<string>('');
   const [selectedJob, setSelectedJob] = useState<string>('');
   const [notes, setNotes] = useState('');
@@ -25,7 +29,7 @@ export const Dashboard: React.FC = () => {
         const docs = await documentService.getMyDocuments();
         setCvs(docs.filter(d => d.document_type === 'cv'));
         setJobs(docs.filter(d => d.document_type === 'job_offer'));
-        
+
         const ctxs = await contextService.getMyContexts();
         setContexts(ctxs);
 
@@ -34,7 +38,8 @@ export const Dashboard: React.FC = () => {
         for (const ctx of ctxs) {
           try {
             const qs = await contextService.getContextQuestions(ctx.id);
-            if (qs.length > 0) {
+            const containsMockQuestion = qs.some(q => q.text.startsWith('[Mock]'));
+            if (qs.length > 0 && !containsMockQuestion) {
               qMap[ctx.id] = qs;
             }
           } catch (err) {
@@ -52,7 +57,7 @@ export const Dashboard: React.FC = () => {
   const handleCreateContext = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedCv || !selectedJob) return;
-    
+
     try {
       setLoading(true);
       await contextService.createContext({
@@ -63,7 +68,7 @@ export const Dashboard: React.FC = () => {
       // Refresh contexts
       const ctxs = await contextService.getMyContexts();
       setContexts(ctxs);
-      
+
       // Reset form
       setSelectedCv('');
       setSelectedJob('');
@@ -73,6 +78,20 @@ export const Dashboard: React.FC = () => {
       alert("Erreur lors de la création de la préparation.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleStartInterview = async (contextId: number) => {
+    try {
+      setStarting(prev => ({ ...prev, [contextId]: true }));
+      setError(null);
+      const session = await sessionService.startSession(contextId);
+      navigate(`/interview/${session.id}`);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || "Impossible de démarrer l'entretien.");
+    } finally {
+      setStarting(prev => ({ ...prev, [contextId]: false }));
     }
   };
 
@@ -196,6 +215,17 @@ export const Dashboard: React.FC = () => {
                       <Sparkles className="w-4 h-4 text-amber-400" />
                       Questions générées
                     </h3>
+                    <button
+                      onClick={() => handleStartInterview(ctx.id)}
+                      disabled={starting[ctx.id]}
+                      className="w-full mb-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-semibold rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {starting[ctx.id] ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Démarrage...</>
+                      ) : (
+                        <><Play className="w-4 h-4" /> Commencer l'entretien</>
+                      )}
+                    </button>
                     <div className="space-y-3">
                       {questionsMap[ctx.id].map((q, idx) => (
                         <div key={q.id || idx} className="bg-gray-800/80 p-3 rounded-lg border border-gray-700">

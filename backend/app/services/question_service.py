@@ -27,6 +27,7 @@ class QuestionService:
         if "questions" not in llm_response:
             raise HTTPException(status_code=500, detail="Format JSON invalide du LLM")
 
+        question_repository.delete_by_context_id(db, context.id)
         questions_to_create = []
         for i, q in enumerate(llm_response["questions"]):
             questions_to_create.append(QuestionCreate(

@@ -5,7 +5,9 @@ from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.schemas.context import ContextCreate, ContextResponse
 from app.schemas.question import QuestionResponse
+from app.schemas.session import SessionResponse
 from app.services.context import context_service
+from app.services.interview_service import interview_service
 from app.services.question_service import question_service
 from app.repositories.context import context_repository
 
@@ -38,7 +40,7 @@ async def generate_questions(
     context = context_repository.get_by_id_and_user(db, context_id, current_user.id)
     if not context:
         raise HTTPException(status_code=404, detail="Préparation non trouvée")
-    
+
     # Générer
     questions = await question_service.generate_and_save_questions(db, context, current_user)
     return questions
@@ -53,3 +55,12 @@ def get_questions(
     if not context:
         raise HTTPException(status_code=404, detail="Préparation non trouvée")
     return question_service.get_context_questions(db, context_id)
+
+@router.post("/{context_id}/sessions", response_model=SessionResponse, status_code=201)
+def start_session(
+    context_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Démarre une session d'entretien à partir des questions existantes."""
+    return interview_service.start_session(db, current_user, context_id)

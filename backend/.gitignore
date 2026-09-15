@@ -39,3 +39,7 @@ env/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Uploaded user documents (contiennent des données personnelles)
+uploads/*
+!uploads/.gitkeep

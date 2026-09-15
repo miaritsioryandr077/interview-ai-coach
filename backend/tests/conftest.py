@@ -46,3 +46,18 @@ def client() -> Generator[TestClient, None, None]:
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
+
+
+@pytest.fixture()
+def mock_db_session() -> Generator[Session, None, None]:
+    """
+    Pytest fixture providing a database session for tests that need direct DB access.
+    """
+    app.dependency_overrides[get_db] = override_get_db
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+        app.dependency_overrides.clear()

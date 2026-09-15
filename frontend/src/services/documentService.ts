@@ -1,5 +1,5 @@
 import { fetchApi } from '../lib/api';
-import { Document, DocumentUploadResponse, DocumentType } from '../types/document';
+import { Document, DocumentUploadResponse } from '../types/document';
 
 export const documentService = {
 

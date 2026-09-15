@@ -1,4 +1,5 @@
 from typing import Optional
+from pathlib import Path
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -29,7 +30,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: Optional[str] = None
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=Path(__file__).resolve().parents[2] / ".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore",

@@ -7,5 +7,15 @@ from app.models.user import User
 from app.models.document import Document
 from app.models.context import Context
 from app.models.question import Question
-
-__all__ = ["Base", "User", "Document", "Context", "Question"]
+from app.models.session import Session, SessionStatus
+from app.models.response import Response
+__all__ = [
+    "Base",
+    "User",
+    "Document",
+    "Context",
+    "Question",
+    "Session",
+    "SessionStatus",
+    "Response",
+]
