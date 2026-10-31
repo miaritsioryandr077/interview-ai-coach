@@ -21,10 +21,8 @@ class LLMService:
             # Liste de repli : si un modèle est indisponible (404 déprécié ou
             # 503/429 surchargé), on essaie automatiquement le suivant.
             self.models = [
-                "gemini-flash-latest",
-                "gemini-3.6-flash",
-                "gemini-2.5-flash",
-                "gemini-3.5-flash",
+                "gemini-3.5-flash-lite",
+                "gemini-flash-lite-latest",
             ]
             self.model = self.models[0]
             self.gemini_base_url = (
@@ -87,8 +85,22 @@ Réponds STRICTEMENT en JSON avec ce format:
 
             return json.loads(content)
         except Exception as e:
-            logger.error(f"LLM Error: {repr(e)}")
-            raise HTTPException(status_code=502, detail=f"Erreur lors de la génération avec l'IA: {repr(e)}")
+            # Récupération du corps de la réponse HTTP le cas échéant (Google),
+            # pour identifier la véritable cause d'un 400/4xx.
+            error_detail = repr(e)
+            response_body = None
+            resp = getattr(e, "response", None)
+            if resp is not None:
+                try:
+                    response_body = resp.text
+                except Exception:
+                    response_body = None
+            if response_body:
+                logger.error("LLM Error: %s | Response body: %s", repr(e), response_body[:1000])
+                error_detail = f"{repr(e)} | Response body: {response_body[:500]}"
+            else:
+                logger.error(f"LLM Error: {repr(e)}")
+            raise HTTPException(status_code=502, detail=f"Erreur lors de la génération avec l'IA: {error_detail}")
 
     async def _call_gemini(self, prompt: str) -> str:
         # Appelle l'API native Gemini en essayant chaque modèle de repli.
@@ -114,11 +126,37 @@ Réponds STRICTEMENT en JSON avec ce format:
                     )
                     response.raise_for_status()
                     data = response.json()
+                    # Extraction sécurisée du texte (un modèle "thinking" peut
+                    # renvoyer un content vide si les tokens sont consommés).
+                    try:
+                        candidate = (data.get("candidates") or [{}])[0]
+                        content_obj = candidate.get("content") or {}
+                        parts = content_obj.get("parts") or []
+                        text = parts[0].get("text") if parts else None
+                    except (IndexError, AttributeError, TypeError):
+                        text = None
+                    if not text:
+                        logger.warning(
+                            "Gemini model %s returned empty content, trying next...",
+                            model,
+                        )
+                        continue
                     self.model = model
-                    return data["candidates"][0]["content"]["parts"][0]["text"]
+                    return text
                 except httpx.HTTPStatusError as e:
                     status = e.response.status_code
-                    logger.warning(f"Gemini model {model} failed ({status}), trying next...")
+                    # Récupération du corps de la réponse Google pour diagnostic
+                    # (sans jamais journaliser la clé API ni les en-têtes sensibles).
+                    try:
+                        error_body = e.response.text
+                    except Exception:
+                        error_body = "<unreadable>"
+                    logger.warning(
+                        "Gemini model %s failed (HTTP %s). Response body: %s",
+                        model,
+                        status,
+                        error_body[:1000],
+                    )
                     last_error = e
                     # On ne réessaie que pour les erreurs transitoires/dépréciation
                     if status not in (404, 429, 500, 503):
