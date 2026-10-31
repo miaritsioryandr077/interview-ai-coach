@@ -112,7 +112,7 @@ export const History: React.FC = () => {
                     {s.ended_at ? `• Terminée le ${new Date(s.ended_at).toLocaleString()}` : ""}
                   </p>
                   <p className="text-gray-500 text-xs">
-                    {s.total_questions} question(s) • {s.responses.length} réponse(s)
+                    {s.total_questions} question(s) • {s.responses.filter((r) => r.text && r.text.trim()).length} réponse(s)
                   </p>
                 </div>
 

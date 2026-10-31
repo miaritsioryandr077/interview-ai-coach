@@ -22,7 +22,10 @@ class InterviewService:
     ) -> SessionResponse:
         """Construit la réponse API : session + questions ordonnées + réponses."""
         questions = question_repository.get_by_context_id(db, db_session.context_id)
-        responses = response_repository.get_by_session_id(db, db_session.id)
+        raw_responses = response_repository.get_by_session_id(db, db_session.id)
+        # Une réponse vide (ou ne contenant que des espaces) est traitée
+        # comme non répondue, côté comptage et affichage.
+        responses = [r for r in raw_responses if r.text and r.text.strip()]
 
         payload = SessionResponse.model_validate(db_session)
         payload.total_questions = len(questions)
@@ -67,7 +70,8 @@ class InterviewService:
         result = []
         for db_session in sessions:
             questions = question_repository.get_by_context_id(db, db_session.context_id)
-            responses = response_repository.get_by_session_id(db, db_session.id)
+            raw_responses = response_repository.get_by_session_id(db, db_session.id)
+            responses = [r for r in raw_responses if r.text and r.text.strip()]
             payload = SessionResponse.model_validate(db_session)
             payload.total_questions = len(questions)
             payload.questions = []

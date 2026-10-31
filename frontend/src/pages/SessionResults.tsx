@@ -60,7 +60,12 @@ export const SessionResults: React.FC = () => {
       </div>
     );
   }
-  const answeredMap = new Map(session.responses.map((r) => [r.question_id, r]));
+  const answeredMap = new Map(
+    session.responses
+      .filter((r) => r.text && r.text.trim())
+      .map((r) => [r.question_id, r]),
+  );
+  const answeredCount = session.responses.filter((r) => r.text && r.text.trim()).length;
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
@@ -105,7 +110,7 @@ export const SessionResults: React.FC = () => {
         </div>
         <div>
           <p className="text-gray-400">Réponses enregistrées</p>
-          <p className="text-white font-medium">{session.responses.length}</p>
+          <p className="text-white font-medium">{answeredCount}</p>
         </div>
       </div>
 
@@ -123,7 +128,7 @@ export const SessionResults: React.FC = () => {
                 {resp ? (
                   <p className="text-gray-200 whitespace-pre-wrap">{resp.text}</p>
                 ) : (
-                  <p className="text-gray-500 italic">Aucune réponse enregistrée.</p>
+                  <p className="text-gray-500 italic">Non répondue.</p>
                 )}
               </div>
               <div className="flex items-center gap-2 text-xs">

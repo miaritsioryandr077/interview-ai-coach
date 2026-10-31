@@ -15,6 +15,7 @@ from app.core.database import get_db
 from app.models.context import Context
 from app.models.document import Document, DocumentType
 from app.models.question import Question
+from app.models.response import Response
 
 
 def _register_and_login(client: TestClient, email: str) -> Tuple[int, Dict[str, str]]:
@@ -344,3 +345,91 @@ def test_session_endpoints_require_auth(client: TestClient):
     assert client.post(
         "/api/v1/sessions/1/responses", json={"question_id": 1, "text": "x"}
     ).status_code == 401
+
+
+def test_empty_response_treated_as_unanswered(client: TestClient):
+    """12. Une réponse vide/espaces est traitée comme non répondue (comptage)."""
+    user_id, headers = _register_and_login(client, "emptyresp@example.com")
+
+    db = next(client.app.dependency_overrides[get_db]())
+    try:
+        context_id = _create_context_with_questions(db, user_id, suffix="_l")
+    finally:
+        db.close()
+
+    session_id = client.post(
+        f"/api/v1/contexts/{context_id}/sessions", headers=headers
+    ).json()["id"]
+    question_id = client.get(
+        f"/api/v1/sessions/{session_id}", headers=headers
+    ).json()["questions"][0]["id"]
+
+    # Réponse normale : doit être comptée.
+    ok = client.post(
+        f"/api/v1/sessions/{session_id}/responses",
+        headers=headers,
+        json={"question_id": question_id, "text": "Ma réponse."},
+    )
+    assert ok.status_code == 201
+
+    # Insertion directe d'une réponse vide (contournement de la validation API)
+    # pour vérifier la règle de comptage côté backend.
+    db = next(client.app.dependency_overrides[get_db]())
+    try:
+        q2 = db.query(Question).filter(Question.context_id == context_id).all()[1]
+        db.add(Response(session_id=session_id, question_id=q2.id, text="   "))
+        db.commit()
+    finally:
+        db.close()
+
+    detail = client.get(f"/api/v1/sessions/{session_id}", headers=headers).json()
+    # Seule la réponse non vide est conservée/comptée.
+    assert len(detail["responses"]) == 1
+    assert detail["responses"][0]["text"] == "Ma réponse."
+
+    # Via l'historique : même règle de comptage.
+    history = client.get("/api/v1/sessions/", headers=headers).json()
+    sess = next(s for s in history if s["id"] == session_id)
+    assert len(sess["responses"]) == 1
+
+
+def test_failed_save_keeps_session_in_progress(client: TestClient):
+    """13. Un échec de sauvegarde ne marque pas la session terminée."""
+    user_id, headers = _register_and_login(client, "failsave@example.com")
+
+    db = next(client.app.dependency_overrides[get_db]())
+    try:
+        context_id = _create_context_with_questions(db, user_id, suffix="_m")
+    finally:
+        db.close()
+
+    session_id = client.post(
+        f"/api/v1/contexts/{context_id}/sessions", headers=headers
+    ).json()["id"]
+    question_id = client.get(
+        f"/api/v1/sessions/{session_id}", headers=headers
+    ).json()["questions"][0]["id"]
+
+    # Tentative de sauvegarde avec texte vide -> refusée.
+    bad = client.post(
+        f"/api/v1/sessions/{session_id}/responses",
+        headers=headers,
+        json={"question_id": question_id, "text": "   "},
+    )
+    assert bad.status_code == 422
+
+    # La session reste en cours.
+    detail = client.get(f"/api/v1/sessions/{session_id}", headers=headers).json()
+    assert detail["status"] == "in_progress"
+    assert detail["ended_at"] is None
+
+    # On peut ensuite sauvegarder correctement puis terminer.
+    good = client.post(
+        f"/api/v1/sessions/{session_id}/responses",
+        headers=headers,
+        json={"question_id": question_id, "text": "OK"},
+    )
+    assert good.status_code == 201
+    done = client.post(f"/api/v1/sessions/{session_id}/complete", headers=headers)
+    assert done.status_code == 200
+    assert done.json()["status"] == "completed"
