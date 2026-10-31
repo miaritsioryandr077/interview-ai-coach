@@ -9,6 +9,8 @@ import { Dashboard } from './pages/Dashboard';
 import { Profile } from './pages/Profile';
 import { Documents } from './pages/Documents';
 import { InterviewSession } from './pages/InterviewSession';
+import { History } from './pages/History';
+import { SessionResults } from './pages/SessionResults';
 
 export const App: React.FC = () => {
   return (
@@ -37,7 +39,22 @@ export const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
-              <Route path="*" element={<Navigate to="/" replace />} />
+              <Route
+                path="/history"
+                element={
+                  <ProtectedRoute>
+                    <History />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sessions/:sessionId/results"
+                element={
+                  <ProtectedRoute>
+                    <SessionResults />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/documents"
                 element={

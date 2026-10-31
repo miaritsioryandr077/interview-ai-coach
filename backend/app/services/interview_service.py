@@ -63,7 +63,17 @@ class InterviewService:
         return self._build_session_response(db, db_session)
 
     def get_my_sessions(self, db: DBSession, user: User):
-        return session_repository.get_by_user_id(db, user.id)
+        sessions = session_repository.get_by_user_id(db, user.id)
+        result = []
+        for db_session in sessions:
+            questions = question_repository.get_by_context_id(db, db_session.context_id)
+            responses = response_repository.get_by_session_id(db, db_session.id)
+            payload = SessionResponse.model_validate(db_session)
+            payload.total_questions = len(questions)
+            payload.questions = []
+            payload.responses = responses
+            result.append(payload)
+        return result
 
     def save_response(
         self, db: DBSession, user: User, session_id: int, question_id: int, text: str
