@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   AlertCircle,
@@ -25,6 +25,8 @@ export const InterviewSession: React.FC = () => {
   const [answerText, setAnswerText] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const savingRef = useRef(false);
   const [completing, setCompleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [finished, setFinished] = useState(false);
@@ -81,6 +83,17 @@ export const InterviewSession: React.FC = () => {
     }
   }, [currentIndex, currentQuestion?.id]);
 
+  // Auto-sauvegarde différée pour éviter la perte en cas d'actualisation.
+  useEffect(() => {
+    if (!session || !currentQuestion) return;
+    if (!answerText.trim()) return;
+    if (answerText === (answers[currentQuestion.id] ?? '')) return;
+    const timer = setTimeout(() => {
+      saveCurrent(answerText);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [answerText, currentQuestion?.id]);
+
   const answeredCount = useMemo(
     () =>
       session
@@ -89,32 +102,43 @@ export const InterviewSession: React.FC = () => {
     [session, answers],
   );
 
+  // Sauvegarde la réponse courante si elle a changé et n'est pas vide.
+  // Renvoie true si la sauvegarde a réussi (ou n'était pas nécessaire).
+  const saveCurrent = async (text: string): Promise<boolean> => {
+    if (!session || !currentQuestion) return true;
+    if (!text.trim()) return true;
+    if (text === (answers[currentQuestion.id] ?? '')) {
+      setSaveStatus('saved');
+      return true;
+    }
+    if (savingRef.current) return true;
+    savingRef.current = true;
+    setSaving(true);
+    setSaveStatus('saving');
+    try {
+      await sessionService.saveResponse(session.id, currentQuestion.id, text);
+      setAnswers((prev) => ({ ...prev, [currentQuestion.id]: text }));
+      setSaveStatus('saved');
+      return true;
+    } catch (err: any) {
+      setSaveStatus('error');
+      setError(err.message || "Erreur lors de l'enregistrement de la réponse.");
+      return false;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  };
+
   const handleValidate = async () => {
     if (!session || !currentQuestion || saving) return;
     if (!answerText.trim()) {
       setError("Veuillez saisir une réponse avant de valider.");
       return;
     }
-
-    try {
-      setSaving(true);
-      setError(null);
-      await sessionService.saveResponse(
-        session.id,
-        currentQuestion.id,
-        answerText,
-      );
-
-      setAnswers((prev) => ({ ...prev, [currentQuestion.id]: answerText }));
-
-      // Passe automatiquement à la question suivante si elle existe.
-      if (currentIndex < total - 1) {
-        setCurrentIndex(currentIndex + 1);
-      }
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de l'enregistrement de la réponse.");
-    } finally {
-      setSaving(false);
+    const ok = await saveCurrent(answerText);
+    if (ok && currentIndex < total - 1) {
+      setCurrentIndex(currentIndex + 1);
     }
   };
 
@@ -123,6 +147,12 @@ export const InterviewSession: React.FC = () => {
     try {
       setCompleting(true);
       setError(null);
+      // Flush de la réponse en cours avant clôture.
+      const flushed = await saveCurrent(answerText);
+      if (!flushed) {
+        setError("Impossible de terminer : la réponse en cours n'a pas pu être enregistrée. Réessayez.");
+        return;
+      }
       await sessionService.completeSession(session.id);
       setFinished(true);
     } catch (err: any) {
@@ -262,9 +292,31 @@ export const InterviewSession: React.FC = () => {
           />
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-gray-500">
-          <MicOff className="w-4 h-4" />
-          Entretien textuel uniquement — la saisie vocale arrivera plus tard.
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center gap-2">
+            <MicOff className="w-4 h-4" />
+            Entretien textuel uniquement — la saisie vocale arrivera plus tard.
+          </div>
+          <div className="flex items-center gap-2">
+            {saveStatus === 'saving' && (
+              <span className="flex items-center gap-1 text-amber-400">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Enregistrement…
+              </span>
+            )}
+            {saveStatus === 'saved' && (
+              <span className="flex items-center gap-1 text-emerald-400">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Enregistré
+              </span>
+            )}
+            {saveStatus === 'error' && (
+              <button
+                onClick={() => saveCurrent(answerText)}
+                className="flex items-center gap-1 text-red-400 hover:text-red-300 underline"
+              >
+                <AlertCircle className="w-3.5 h-3.5" /> Échec — réessayer
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -313,7 +365,11 @@ export const InterviewSession: React.FC = () => {
             </button>
           ) : (
             <button
-              onClick={() => setCurrentIndex(currentIndex + 1)}
+              onClick={async () => {
+            if (saving) return;
+            const ok = await saveCurrent(answerText);
+            if (ok) setCurrentIndex(currentIndex + 1);
+          }}
               disabled={saving}
               className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 hover:bg-gray-700 text-white font-semibold rounded-lg transition disabled:opacity-50"
             >

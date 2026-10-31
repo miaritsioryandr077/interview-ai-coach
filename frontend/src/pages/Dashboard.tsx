@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Document } from '../types/document';
 import { Context } from '../types/context';
+import { InterviewSession as InterviewSessionData } from '../types/session';
 import { Question } from '../types/question';
 import { documentService } from '../services/documentService';
 import { contextService } from '../services/contextService';
@@ -15,6 +16,7 @@ export const Dashboard: React.FC = () => {
   const [jobs, setJobs] = useState<Document[]>([]);
   const [contexts, setContexts] = useState<Context[]>([]);
   const [questionsMap, setQuestionsMap] = useState<Record<number, Question[]>>({});
+  const [sessionsMap, setSessionsMap] = useState<Record<number, InterviewSessionData>>({});
   const [generating, setGenerating] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -32,6 +34,22 @@ export const Dashboard: React.FC = () => {
 
         const ctxs = await contextService.getMyContexts();
         setContexts(ctxs);
+
+        // Sessions existantes pour permettre la reprise.
+        try {
+          const sessions = await sessionService.getMySessions();
+          const smap: Record<number, InterviewSessionData> = {};
+          for (const s of sessions) {
+            if (s.status === 'in_progress') {
+              if (!smap[s.context_id] || new Date(s.started_at) > new Date(smap[s.context_id].started_at)) {
+                smap[s.context_id] = s;
+              }
+            }
+          }
+          setSessionsMap(smap);
+        } catch {
+          // Non bloquant.
+        }
 
         // Load existing questions for each context
         const qMap: Record<number, Question[]> = {};
@@ -85,6 +103,11 @@ export const Dashboard: React.FC = () => {
     try {
       setStarting(prev => ({ ...prev, [contextId]: true }));
       setError(null);
+      const existing = sessionsMap[contextId];
+      if (existing) {
+        navigate(`/interview/${existing.id}`);
+        return;
+      }
       const session = await sessionService.startSession(contextId);
       navigate(`/interview/${session.id}`);
     } catch (err: any) {
@@ -222,6 +245,8 @@ export const Dashboard: React.FC = () => {
                     >
                       {starting[ctx.id] ? (
                         <><Loader2 className="w-4 h-4 animate-spin" /> Démarrage...</>
+                      ) : sessionsMap[ctx.id] ? (
+                        <><Play className="w-4 h-4" /> Reprendre l'entretien</>
                       ) : (
                         <><Play className="w-4 h-4" /> Commencer l'entretien</>
                       )}
