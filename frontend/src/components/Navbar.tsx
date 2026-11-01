@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Bot, LogOut, User as UserIcon, Sparkles } from 'lucide-react';
-import { FileText, Clock } from 'lucide-react';
+import { FileText, Clock, Globe } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -52,6 +52,13 @@ export const Navbar: React.FC = () => {
               >
                 <Clock className="w-4 h-4 text-brand-500" />
                 Historique
+              </Link>
+              <Link
+                to="/progress"
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-300 hover:text-white hover:bg-gray-800 transition"
+              >
+                <Globe className="w-4 h-4 text-brand-500" />
+                Progression
               </Link>
 
               <Link

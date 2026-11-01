@@ -6,6 +6,7 @@ import { Question } from '../types/question';
 import { documentService } from '../services/documentService';
 import { contextService } from '../services/contextService';
 import { sessionService } from '../services/sessionService';
+import { progressService } from '../services/progressService';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, PlusCircle, Loader2, Sparkles, AlertCircle, Play } from 'lucide-react';
 
@@ -17,6 +18,7 @@ export const Dashboard: React.FC = () => {
   const [contexts, setContexts] = useState<Context[]>([]);
   const [questionsMap, setQuestionsMap] = useState<Record<number, Question[]>>({});
   const [sessionsMap, setSessionsMap] = useState<Record<number, InterviewSessionData>>({});
+  const [progressMap, setProgressMap] = useState<Record<number, any>>({});
   const [generating, setGenerating] = useState<Record<number, boolean>>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -65,6 +67,20 @@ export const Dashboard: React.FC = () => {
           }
         }
         setQuestionsMap(qMap);
+
+        // Progression par préparation (best-effort)
+        const pMap: Record<number, any> = {};
+        await Promise.all(
+          ctxs.map(async (ctx) => {
+            try {
+              const p = await progressService.getPreparationProgress(ctx.id);
+              pMap[ctx.id] = p;
+            } catch {
+              // ignore
+            }
+          }),
+        );
+        setProgressMap(pMap);
       } catch (err) {
         console.error("Erreur lors du chargement des données", err);
       }
@@ -238,6 +254,14 @@ export const Dashboard: React.FC = () => {
                       <Sparkles className="w-4 h-4 text-amber-400" />
                       Questions générées
                     </h3>
+                    {progressMap[ctx.id] && (
+                      <div className="mb-3 text-xs text-gray-400">
+                        {progressMap[ctx.id].total_completed} entretien(s) terminé(s)
+                        {progressMap[ctx.id].average_overall != null
+                          ? ` · Score moyen ${progressMap[ctx.id].average_overall}/10`
+                          : ""}
+                      </div>
+                    )}
                     <button
                       onClick={() => handleStartInterview(ctx.id)}
                       disabled={starting[ctx.id]}

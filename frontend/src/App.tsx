@@ -10,6 +10,7 @@ import { Profile } from './pages/Profile';
 import { Documents } from './pages/Documents';
 import { InterviewSession } from './pages/InterviewSession';
 import { History } from './pages/History';
+import { Progress } from './pages/Progress';
 import { SessionResults } from './pages/SessionResults';
 
 export const App: React.FC = () => {
@@ -71,8 +72,16 @@ export const App: React.FC = () => {
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/progress"
+                element={
+                  <ProtectedRoute>
+                    <Progress />
+                  </ProtectedRoute>
+                }
+              />
             </Routes>
-          </main>
+</main>
         </div>
       </AuthProvider>
     </Router>
