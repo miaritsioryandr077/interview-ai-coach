@@ -1,8 +1,10 @@
 from datetime import datetime, timezone
 from typing import List, Optional
+
 import enum
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, JSON
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models import Base
@@ -37,6 +39,11 @@ class Session(Base):
         nullable=False,
     )
     ended_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    # Analyse IA de la session (JSON structuré), nullable.
+    analysis: Mapped[Optional[dict]] = mapped_column(
+        JSON().with_variant(JSONB, "postgresql"), nullable=True
+    )
 
     # Relations
     context = relationship("Context")

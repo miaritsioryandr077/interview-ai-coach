@@ -3,6 +3,7 @@ from typing import List, Optional
 
 from pydantic import BaseModel, ConfigDict
 from app.models.session import SessionStatus
+from app.schemas.analysis import AnalysisResponse
 from app.schemas.question import QuestionResponse
 from app.schemas.response import ResponseResponse
 
@@ -19,5 +20,6 @@ class SessionResponse(BaseModel):
     total_questions: int = 0
     questions: List[QuestionResponse] = []
     responses: List[ResponseResponse] = []
+    analysis: Optional[AnalysisResponse] = None
 
     model_config = ConfigDict(from_attributes=True)

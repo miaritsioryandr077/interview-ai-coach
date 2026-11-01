@@ -433,3 +433,186 @@ def test_failed_save_keeps_session_in_progress(client: TestClient):
     done = client.post(f"/api/v1/sessions/{session_id}/complete", headers=headers)
     assert done.status_code == 200
     assert done.json()["status"] == "completed"
+
+import asyncio
+from unittest.mock import AsyncMock, patch
+
+
+def _valid_analysis_dict() -> dict:
+    return {
+        "overall_score": 7.5,
+        "criteria": {
+            "pertinence": 8.0,
+            "structure": 7.0,
+            "clarte": 7.5,
+            "vocabulaire": 7.5,
+        },
+        "strengths": ["Clarté"],
+        "weaknesses": ["Manque d'exemple"],
+        "advice": ["Ajouter un exemple concret"],
+        "responses": [],
+    }
+
+
+def test_analyze_requires_completed(client: TestClient):
+    """Analyse refusée si la session n'est pas terminée."""
+    user_id, headers = _register_and_login(client, "an_inprogress@example.com")
+    db = next(client.app.dependency_overrides[get_db]())
+    try:
+        context_id = _create_context_with_questions(db, user_id, suffix="_a1")
+    finally:
+        db.close()
+    session_id = client.post(
+        f"/api/v1/contexts/{context_id}/sessions", headers=headers
+    ).json()["id"]
+    resp = client.post(f"/api/v1/sessions/{session_id}/analyze", headers=headers)
+    assert resp.status_code == 400
+
+
+def test_analyze_no_responses(client: TestClient):
+    """Analyse refusée si aucune réponse non vide."""
+    user_id, headers = _register_and_login(client, "an_empty@example.com")
+    db = next(client.app.dependency_overrides[get_db]())
+    try:
+        context_id = _create_context_with_questions(db, user_id, suffix="_a2")
+    finally:
+        db.close()
+    session_id = client.post(
+        f"/api/v1/contexts/{context_id}/sessions", headers=headers
+    ).json()["id"]
+    client.post(f"/api/v1/sessions/{session_id}/complete", headers=headers)
+    resp = client.post(f"/api/v1/sessions/{session_id}/analyze", headers=headers)
+    assert resp.status_code == 400
+
+
+def test_analyze_success_and_rerun_version(client: TestClient):
+    """Analyse persistée + relance incrémente la version."""
+    user_id, headers = _register_and_login(client, "an_ok@example.com")
+    db = next(client.app.dependency_overrides[get_db]())
+    try:
+        context_id = _create_context_with_questions(db, user_id, suffix="_a3")
+    finally:
+        db.close()
+    session_id = client.post(
+        f"/api/v1/contexts/{context_id}/sessions", headers=headers
+    ).json()["id"]
+    question_id = client.get(
+        f"/api/v1/sessions/{session_id}", headers=headers
+    ).json()["questions"][0]["id"]
+    client.post(
+        f"/api/v1/sessions/{session_id}/responses",
+        headers=headers,
+        json={"question_id": question_id, "text": "Ma réponse."},
+    )
+    with patch(
+        "app.services.interview_service.llm_service.analyze_interview",
+        new=AsyncMock(return_value=_valid_analysis_dict()),
+    ):
+        client.post(f"/api/v1/sessions/{session_id}/complete", headers=headers)
+
+        r1 = client.post(f"/api/v1/sessions/{session_id}/analyze", headers=headers)
+        assert r1.status_code == 200, r1.text
+        assert r1.json()["version"] == 2
+
+        r2 = client.post(f"/api/v1/sessions/{session_id}/analyze", headers=headers)
+        assert r2.status_code == 200, r2.text
+        assert r2.json()["version"] == 3
+
+    g = client.get(f"/api/v1/sessions/{session_id}/analysis", headers=headers)
+    assert g.status_code == 200
+    assert g.json()["version"] == 3
+
+
+def test_analyze_cross_user(client: TestClient):
+    """Isolation cross-user."""
+    owner_id, owner_headers = _register_and_login(client, "an_owner@example.com")
+    _, intruder_headers = _register_and_login(client, "an_intruder@example.com")
+    db = next(client.app.dependency_overrides[get_db]())
+    try:
+        context_id = _create_context_with_questions(db, owner_id, suffix="_a4")
+    finally:
+        db.close()
+    session_id = client.post(
+        f"/api/v1/contexts/{context_id}/sessions", headers=owner_headers
+    ).json()["id"]
+    qid = client.get(
+        f"/api/v1/sessions/{session_id}", headers=owner_headers
+    ).json()["questions"][0]["id"]
+    client.post(
+        f"/api/v1/sessions/{session_id}/responses",
+        headers=owner_headers,
+        json={"question_id": qid, "text": "Réponse"},
+    )
+    client.post(f"/api/v1/sessions/{session_id}/complete", headers=owner_headers)
+
+    assert client.post(
+        f"/api/v1/sessions/{session_id}/analyze", headers=intruder_headers
+    ).status_code in (403, 404)
+    assert client.get(
+        f"/api/v1/sessions/{session_id}/analysis", headers=intruder_headers
+    ).status_code in (403, 404)
+
+
+def test_analyze_gemini_failure(client: TestClient):
+    """Échec Gemini : session reste terminée, analysis=null, 502."""
+    user_id, headers = _register_and_login(client, "an_fail@example.com")
+    db = next(client.app.dependency_overrides[get_db]())
+    try:
+        context_id = _create_context_with_questions(db, user_id, suffix="_a5")
+    finally:
+        db.close()
+    session_id = client.post(
+        f"/api/v1/contexts/{context_id}/sessions", headers=headers
+    ).json()["id"]
+    qid = client.get(
+        f"/api/v1/sessions/{session_id}", headers=headers
+    ).json()["questions"][0]["id"]
+    client.post(
+        f"/api/v1/sessions/{session_id}/responses",
+        headers=headers,
+        json={"question_id": qid, "text": "Réponse"},
+    )
+    with patch(
+        "app.services.interview_service.llm_service.analyze_interview",
+        new=AsyncMock(side_effect=RuntimeError("boom")),
+    ):
+        client.post(f"/api/v1/sessions/{session_id}/complete", headers=headers)
+
+        resp = client.post(f"/api/v1/sessions/{session_id}/analyze", headers=headers)
+        assert resp.status_code == 502
+
+    detail = client.get(f"/api/v1/sessions/{session_id}", headers=headers).json()
+    assert detail["status"] == "completed"
+    assert detail.get("analysis") is None
+
+
+def test_analyze_invalid_json(client: TestClient):
+    """JSON invalide renvoyé par Gemini : non persisté, 502."""
+    user_id, headers = _register_and_login(client, "an_invalid@example.com")
+    db = next(client.app.dependency_overrides[get_db]())
+    try:
+        context_id = _create_context_with_questions(db, user_id, suffix="_a6")
+    finally:
+        db.close()
+    session_id = client.post(
+        f"/api/v1/contexts/{context_id}/sessions", headers=headers
+    ).json()["id"]
+    qid = client.get(
+        f"/api/v1/sessions/{session_id}", headers=headers
+    ).json()["questions"][0]["id"]
+    client.post(
+        f"/api/v1/sessions/{session_id}/responses",
+        headers=headers,
+        json={"question_id": qid, "text": "Réponse"},
+    )
+    with patch(
+        "app.services.interview_service.llm_service.analyze_interview",
+        new=AsyncMock(return_value={"bad": "data"}),
+    ):
+        client.post(f"/api/v1/sessions/{session_id}/complete", headers=headers)
+
+        resp = client.post(f"/api/v1/sessions/{session_id}/analyze", headers=headers)
+        assert resp.status_code == 502
+
+    detail = client.get(f"/api/v1/sessions/{session_id}", headers=headers).json()
+    assert detail.get("analysis") is None

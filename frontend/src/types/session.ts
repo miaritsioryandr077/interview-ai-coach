@@ -20,4 +20,5 @@ export interface InterviewSession {
   total_questions: number;
   questions: Question[];
   responses: InterviewResponse[];
+  analysis?: any;
 }

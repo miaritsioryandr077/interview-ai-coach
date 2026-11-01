@@ -106,6 +106,11 @@ export const History: React.FC = () => {
                     >
                       {isInProgress ? "En cours" : "Terminée"}
                     </span>
+                    {!isInProgress && s.analysis && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-400">
+                        Analysé
+                      </span>
+                    )}
                   </div>
                   <p className="text-gray-400 text-sm">
                     {new Date(s.started_at).toLocaleString()}{" "}

@@ -13,6 +13,8 @@ export const SessionResults: React.FC = () => {
   const [context, setContext] = useState<Context | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -34,6 +36,20 @@ export const SessionResults: React.FC = () => {
     };
     load();
   }, [sessionId]);
+
+  const handleAnalyze = async () => {
+    if (!session) return;
+    try {
+      setAnalyzing(true);
+      setAnalysisError(null);
+      const a = await sessionService.analyzeSession(session.id);
+      setSession({ ...session, analysis: a });
+    } catch (err: any) {
+      setAnalysisError(err.message || "L'analyse n'a pas pu être générée.");
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -112,6 +128,131 @@ export const SessionResults: React.FC = () => {
           <p className="text-gray-400">Réponses enregistrées</p>
           <p className="text-white font-medium">{answeredCount}</p>
         </div>
+      </div>
+
+      {/* Analyse IA */}
+      <div className="bg-gray-800/60 border border-gray-700 rounded-xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-bold text-white">Analyse IA</h2>
+          {session.analysis ? (
+            <button
+              onClick={handleAnalyze}
+              disabled={analyzing}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition disabled:opacity-50"
+            >
+              {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Relancer l'analyse
+            </button>
+          ) : (
+            <button
+              onClick={handleAnalyze}
+              disabled={analyzing}
+              className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-sm font-medium transition disabled:opacity-50"
+            >
+              {analyzing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Analyser cet entretien
+            </button>
+          )}
+        </div>
+
+        {analysisError && (
+          <div className="flex items-center gap-2 text-red-400 bg-red-950/30 border border-red-900/50 rounded-lg px-4 py-3 text-sm">
+            <AlertCircle className="w-5 h-5" />
+            {analysisError}
+          </div>
+        )}
+
+        {analyzing && (
+          <p className="text-gray-400 text-sm">Analyse en cours…</p>
+        )}
+
+        {!session.analysis && !analyzing && (
+          <p className="text-gray-400 text-sm">
+            Analyse non disponible. Cliquez sur « Analyser cet entretien » pour la générer.
+          </p>
+        )}
+
+        {session.analysis && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl font-bold text-brand-400">
+                {session.analysis.overall_score}/10
+              </span>
+              <span className="text-gray-400 text-sm">Score global</span>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {(["pertinence", "structure", "clarte", "vocabulaire"] as const).map((c) => (
+                <div key={c} className="bg-gray-900/60 border border-gray-700 rounded-lg p-3 text-center">
+                  <p className="text-gray-400 text-xs capitalize">{c}</p>
+                  <p className="text-white font-semibold">{session.analysis.criteria[c]}/10</p>
+                </div>
+              ))}
+            </div>
+
+            {session.analysis.strengths?.length > 0 && (
+              <div>
+                <p className="text-gray-300 font-medium mb-1">Points forts</p>
+                <ul className="list-disc list-inside text-gray-400 text-sm space-y-1">
+                  {session.analysis.strengths.map((s: string, i: number) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {session.analysis.weaknesses?.length > 0 && (
+              <div>
+                <p className="text-gray-300 font-medium mb-1">Points faibles</p>
+                <ul className="list-disc list-inside text-gray-400 text-sm space-y-1">
+                  {session.analysis.weaknesses.map((s: string, i: number) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {session.analysis.advice?.length > 0 && (
+              <div>
+                <p className="text-gray-300 font-medium mb-1">Conseils</p>
+                <ul className="list-disc list-inside text-gray-400 text-sm space-y-1">
+                  {session.analysis.advice.map((s: string, i: number) => (
+                    <li key={i}>{s}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {session.analysis.responses?.length > 0 && (
+              <div className="space-y-3 pt-2">
+                <p className="text-gray-300 font-medium">Détail par réponse</p>
+                {session.questions.map((q) => {
+                  const ra = session.analysis.responses.find((r: any) => r.question_id === q.id);
+                  if (!ra) return null;
+                  return (
+                    <div key={q.id} className="bg-gray-900/60 border border-gray-700 rounded-lg p-3 space-y-2">
+                      <p className="text-white text-sm font-medium">{q.text}</p>
+                      {ra.answered ? (
+                        <>
+                          <p className="text-xs text-gray-400">Score : {ra.score}/10</p>
+                          {ra.feedback && <p className="text-sm text-gray-300">{ra.feedback}</p>}
+                          {ra.improved_answer && (
+                            <div className="bg-gray-800/60 rounded p-2">
+                              <p className="text-xs text-gray-400 mb-1">Meilleure reformulation :</p>
+                              <p className="text-sm text-gray-200 whitespace-pre-wrap">{ra.improved_answer}</p>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-sm text-amber-400 italic">Non répondue</p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="space-y-4">

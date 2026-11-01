@@ -32,4 +32,14 @@ export const sessionService = {
       method: "POST",
     });
   },
+
+  analyzeSession: async (sessionId: number): Promise<any> => {
+    return fetchApi<any>(`/sessions/${sessionId}/analyze`, {
+      method: "POST",
+    });
+  },
+
+  getAnalysis: async (sessionId: number): Promise<any> => {
+    return fetchApi<any>(`/sessions/${sessionId}/analysis`);
+  },
 };

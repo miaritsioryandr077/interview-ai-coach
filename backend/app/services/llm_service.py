@@ -102,7 +102,49 @@ Réponds STRICTEMENT en JSON avec ce format:
                 logger.error(f"LLM Error: {repr(e)}")
             raise HTTPException(status_code=502, detail=f"Erreur lors de la génération avec l'IA: {error_detail}")
 
-    async def _call_gemini(self, prompt: str) -> str:
+    async def analyze_interview(self, qa_list: list[dict]) -> dict:
+        """Analyse une session d'entretien (un seul appel Gemini)."""
+        import asyncio
+        from app.services.prompts.analyze_interview import build_analyze_prompt
+
+        prompt = build_analyze_prompt(qa_list)
+
+        async def _attempt() -> str:
+            if self.provider == "gemini":
+                return await self._call_gemini(prompt, timeout=60.0)
+            return await self._call_openai_compatible(prompt)
+
+        last_exc = None
+        for attempt in range(2):
+            try:
+                content = await _attempt()
+                break
+            except Exception as e:
+                last_exc = e
+                # Retry unique sur timeout / 5xx ; pas sur 429 ni 400.
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                is_timeout = isinstance(e, (httpx.TimeoutException, httpx.ReadTimeout))
+                is_5xx = status is not None and 500 <= status < 600
+                if attempt == 0 and (is_timeout or is_5xx):
+                    await asyncio.sleep(1.0)
+                    continue
+                raise
+        else:
+            raise last_exc
+
+        content = content.strip()
+        if content.startswith("```json"):
+            content = content[7:]
+        if content.startswith("```"):
+            content = content[3:]
+        if content.endswith("```"):
+            content = content[:-3]
+        content = content.strip()
+        import json as _json
+        return _json.loads(content)
+
+
+    async def _call_gemini(self, prompt: str, timeout: float = 120.0, response_schema: dict | None = None) -> str:
         # Appelle l'API native Gemini en essayant chaque modèle de repli.
         last_error = None
         async with httpx.AsyncClient() as client:
@@ -118,11 +160,12 @@ Réponds STRICTEMENT en JSON avec ce format:
                         json={
                             "contents": [{"parts": [{"text": prompt}]}],
                             "generationConfig": {
-                                "maxOutputTokens": 1500,
+                                "maxOutputTokens": 4096,
                                 "responseMimeType": "application/json",
+                                **({"responseSchema": response_schema} if response_schema else {}),
                             },
                         },
-                        timeout=120.0,
+                        timeout=timeout,
                     )
                     response.raise_for_status()
                     data = response.json()
