@@ -58,7 +58,7 @@ L'objectif est de proposer une expérience de préparation personnalisée, inter
 | Domaine | Technologies |
 |---|---|
 | Backend | Python, FastAPI |
-| Frontend | Application web |
+| Frontend | Next.js, TypeScript |
 | Base de données | À préciser selon la configuration du projet |
 | Intelligence artificielle | Google Gemini API |
 | Documents | Extraction de texte PDF |
