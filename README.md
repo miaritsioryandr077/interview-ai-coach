@@ -1,75 +1,75 @@
 # InterviewAI Coach
 
 <p align="center">
-  <strong>Préparez vos entretiens d'embauche avec l'intelligence artificielle.</strong>
+  <strong>Prepare for your job interviews with artificial intelligence.</strong>
 </p>
 
 <p align="center">
-  Une plateforme intelligente qui accompagne les candidats dans leur préparation aux entretiens professionnels grâce à des questions personnalisées générées à partir de leur CV et de l'offre d'emploi ciblée.
+  An intelligent platform that helps candidates prepare for professional interviews with personalized questions generated from their résumé and the job posting they are targeting.
 </p>
 
 ---
 
-## À propos du projet
+## About the Project
 
-**InterviewAI Coach** est une application web SaaS conçue pour aider les candidats à mieux préparer leurs entretiens d'embauche grâce à l'intelligence artificielle.
+**InterviewAI Coach** is a SaaS web application designed to help candidates prepare for job interviews more effectively using artificial intelligence.
 
-L'application exploite les informations du CV et de l'offre d'emploi pour générer des questions d'entretien adaptées au profil, aux compétences et au poste recherché.
+The application uses the information in a résumé and a job posting to generate interview questions tailored to the candidate's profile, skills, and target position.
 
-L'objectif est de proposer une expérience de préparation personnalisée, interactive et évolutive, permettant aux candidats de s'entraîner, de conserver leurs réponses et, à terme, d'améliorer leurs performances grâce à des analyses intelligentes.
+The goal is to offer a personalized, interactive, and evolving preparation experience, allowing candidates to practice, keep their answers, and eventually improve their performance through intelligent analysis.
 
-## Objectifs
+## Goals
 
-- Faciliter la préparation aux entretiens d'embauche.
-- Personnaliser les questions selon le profil du candidat.
-- Exploiter les CV et les offres d'emploi pour contextualiser les simulations.
-- Permettre aux utilisateurs de s'entraîner dans un environnement interactif.
-- Conserver l'historique des simulations et les réponses.
-- Accompagner progressivement les candidats dans l'amélioration de leurs performances.
+- Make job interview preparation easier.
+- Personalize questions based on the candidate's profile.
+- Use résumés and job postings to give context to practice sessions.
+- Let users practice in an interactive environment.
+- Keep a history of simulations and answers.
+- Gradually help candidates improve their performance.
 
-## Fonctionnalités
+## Features
 
-### Fonctionnalités développées
+### Implemented Features
 
-- **Authentification** — Inscription, connexion et gestion du compte utilisateur.
-- **Profil utilisateur** — Gestion des informations personnelles.
-- **Gestion des CV** — Importation et stockage des CV au format PDF.
-- **Gestion des offres d'emploi** — Importation et gestion des offres.
-- **Extraction de contenu PDF** — Récupération du texte des documents.
-- **Préparation personnalisée** — Association d'un CV et d'une offre d'emploi pour créer un contexte de préparation.
-- **Génération de questions par IA** — Création de questions adaptées au profil et au poste visé.
-- **Simulation d'entretien textuelle** — Questions et réponses saisies par l'utilisateur.
-- **Persistance des réponses** — Enregistrement des réponses dans la base de données.
+- **Authentication** — Registration, login, and user account management.
+- **User profile** — Management of personal information.
+- **Résumé management** — Upload and storage of résumés in PDF format.
+- **Job posting management** — Import and management of job postings.
+- **PDF content extraction** — Text retrieval from documents.
+- **Personalized preparation** — Linking a résumé and a job posting to create a preparation context.
+- **AI-powered question generation** — Creation of questions tailored to the profile and the target position.
+- **Text-based interview simulation** — Questions and answers typed by the user.
+- **Answer persistence** — Answers are saved in the database.
 
-### Fonctionnalités en cours et prévues
+### Features in Progress and Planned
 
-- Historique complet des entretiens.
-- Consultation détaillée des questions et réponses.
-- Reprise des simulations inachevées.
-- Analyse intelligente des réponses.
-- Évaluation et notation des performances.
-- Recommandations personnalisées pour améliorer les réponses.
-- Tableau de bord de progression.
-- Simulation d'entretien vocal.
-- Reconnaissance et transcription de la voix.
+- Full interview history.
+- Detailed review of questions and answers.
+- Resuming unfinished simulations.
+- Intelligent analysis of answers.
+- Performance evaluation and scoring.
+- Personalized recommendations to improve answers.
+- Progress dashboard.
+- Voice interview simulation.
+- Speech recognition and transcription.
 
-## Technologies utilisées
+## Technologies Used
 
-| Domaine | Technologies |
+| Area | Technologies |
 |---|---|
 | Backend | Python, FastAPI |
 | Frontend | TypeScript |
-| Base de données | PostgreSQL |
-| Intelligence artificielle | Google Gemini API |
-| Documents | Extraction de texte PDF |
-| Conteneurisation | Docker, Docker Compose |
-| Gestion de versions | Git, GitHub |
+| Database | PostgreSQL |
+| Artificial Intelligence | Google Gemini API |
+| Documents | PDF text extraction |
+| Containerization | Docker, Docker Compose |
+| Version Control | Git, GitHub |
 
-> La stack frontend et le système de base de données seront précisés selon les dépendances et la configuration réelles du dépôt.
+> The frontend stack and the database system will be specified according to the actual dependencies and configuration of the repository.
 
-## Architecture du projet
+## Project Architecture
 
-InterviewAI Coach repose sur une architecture séparant les responsabilités du frontend, du backend, de la base de données et du service d'intelligence artificielle.
+InterviewAI Coach is built on an architecture that separates the responsibilities of the frontend, the backend, the database, and the artificial intelligence service.
 
 ```text
 InterviewAI-Coach/
@@ -94,181 +94,181 @@ InterviewAI-Coach/
 └── README.md
 ```
 
-*Cette arborescence est indicative : elle devra être adaptée à l'organisation réelle du dépôt.*
+*This directory structure is indicative: it should be adapted to the actual organization of the repository.*
 
-## Installation et configuration
+## Installation and Setup
 
-### 1. Prérequis
+### 1. Prerequisites
 
-Avant de commencer, installer :
+Before you begin, install:
 
 - Git
 - Python 3
-- Node.js et npm
-- Docker et Docker Compose (si utilisés)
-- Une clé API Google Gemini
+- Node.js and npm
+- Docker and Docker Compose (if used)
+- A Google Gemini API key
 
-### 2. Cloner le dépôt
+### 2. Clone the Repository
 
 ```bash
-git clone https://github.com/VOTRE-USERNAME/InterviewAI-Coach.git
+git clone https://github.com/YOUR-USERNAME/InterviewAI-Coach.git
 
 cd InterviewAI-Coach
 ```
 
-### 3. Configurer les variables d'environnement
+### 3. Configure Environment Variables
 
-Créer les fichiers `.env` nécessaires à partir des exemples fournis dans le projet.
+Create the required `.env` files from the examples provided in the project.
 
-Exemple de configuration :
+Example configuration:
 
 ```env
-GEMINI_API_KEY=votre_cle_api
+GEMINI_API_KEY=your_api_key
 ```
 
-Les autres variables nécessaires (base de données, authentification, configuration du serveur) doivent être renseignées selon les fichiers de configuration du projet.
+The other required variables (database, authentication, server configuration) must be filled in according to the project's configuration files.
 
-**Important : ne jamais publier les clés API, mots de passe ou autres secrets dans un dépôt GitHub.**
+**Important: never publish API keys, passwords, or other secrets in a GitHub repository.**
 
-### 4. Lancer le backend
+### 4. Run the Backend
 
-Se placer dans le dossier backend :
+Go to the backend folder:
 
 ```bash
 cd backend
 ```
 
-Créer un environnement virtuel :
+Create a virtual environment:
 
 ```bash
 python -m venv venv
 ```
 
-Activer l'environnement virtuel sous Linux :
+Activate the virtual environment on Linux:
 
 ```bash
 source venv/bin/activate
 ```
 
-Installer les dépendances :
+Install the dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Lancer le serveur FastAPI :
+Start the FastAPI server:
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-La documentation interactive de l'API est généralement accessible à l'adresse :
+The interactive API documentation is usually available at:
 
 ```text
 http://127.0.0.1:8000/docs
 ```
 
-### 5. Lancer le frontend
+### 5. Run the Frontend
 
-Dans un autre terminal :
+In another terminal:
 
 ```bash
 cd frontend
 ```
 
-Installer les dépendances :
+Install the dependencies:
 
 ```bash
 npm install
 ```
 
-Lancer le serveur de développement :
+Start the development server:
 
 ```bash
 npm run dev
 ```
 
-L'adresse locale du frontend dépend de la configuration du projet et du framework utilisé.
+The frontend's local address depends on the project configuration and the framework used.
 
 ## Docker
 
-Le projet prévoit également une approche de conteneurisation avec Docker afin de faciliter la configuration et le déploiement de l'application.
+The project also includes a containerization approach with Docker to simplify setup and deployment of the application.
 
-Lorsque le fichier `docker-compose.yml` est configuré pour l'ensemble des services :
+Once the `docker-compose.yml` file is configured for all services:
 
 ```bash
 docker compose up --build
 ```
 
-Pour arrêter les services :
+To stop the services:
 
 ```bash
 docker compose down
 ```
 
-## Parcours utilisateur
+## User Journey
 
-Le fonctionnement général d'InterviewAI Coach suit ce parcours :
+The general workflow of InterviewAI Coach follows these steps:
 
-1. L'utilisateur crée un compte et se connecte.
-2. Il importe son CV.
-3. Il importe une offre d'emploi.
-4. Il crée une préparation en associant les deux documents.
-5. L'intelligence artificielle analyse le contexte et génère des questions personnalisées.
-6. L'utilisateur démarre une simulation d'entretien.
-7. Il répond aux questions.
-8. Ses réponses sont enregistrées pour permettre leur consultation et leur exploitation ultérieure.
-9. Les futures fonctionnalités d'analyse permettront d'obtenir des retours personnalisés et de suivre sa progression.
+1. The user creates an account and logs in.
+2. They upload their résumé.
+3. They upload a job posting.
+4. They create a preparation by linking the two documents.
+5. The artificial intelligence analyzes the context and generates personalized questions.
+6. The user starts an interview simulation.
+7. They answer the questions.
+8. Their answers are saved so they can be reviewed and used later.
+9. Upcoming analysis features will provide personalized feedback and let them track their progress.
 
-## Feuille de route
+## Roadmap
 
-- [x] Authentification et gestion des utilisateurs
-- [x] Gestion du profil utilisateur
-- [x] Importation des CV
-- [x] Importation des offres d'emploi
-- [x] Extraction du contenu PDF
-- [x] Création des préparations
-- [x] Génération de questions personnalisées avec l'IA
-- [x] Simulation d'entretien textuelle
-- [x] Enregistrement des réponses
-- [ ] Historique des simulations
-- [ ] Consultation détaillée des résultats
-- [ ] Reprise des sessions inachevées
-- [ ] Analyse IA des réponses
-- [ ] Évaluation des performances
-- [ ] Conseils et recommandations personnalisés
-- [ ] Tableau de bord de progression
-- [ ] Simulation vocale
-- [ ] Transcription automatique des réponses
+- [x] User authentication and management
+- [x] User profile management
+- [x] Résumé upload
+- [x] Job posting import
+- [x] PDF content extraction
+- [x] Preparation creation
+- [x] Personalized question generation with AI
+- [x] Text-based interview simulation
+- [x] Answer saving
+- [ ] Simulation history
+- [ ] Detailed results review
+- [ ] Resuming unfinished sessions
+- [ ] AI analysis of answers
+- [ ] Performance evaluation
+- [ ] Personalized tips and recommendations
+- [ ] Progress dashboard
+- [ ] Voice simulation
+- [ ] Automatic transcription of answers
 
-## Sécurité
+## Security
 
-La sécurité des données utilisateurs est un élément important du projet.
+The security of user data is an important aspect of the project.
 
-Les principes à respecter comprennent :
+The principles to follow include:
 
-- Protection des routes nécessitant une authentification.
-- Isolation des données entre utilisateurs.
-- Protection des informations personnelles.
-- Stockage sécurisé des clés API.
-- Validation des fichiers importés.
-- Gestion appropriée des erreurs et des accès non autorisés.
+- Protection of routes that require authentication.
+- Data isolation between users.
+- Protection of personal information.
+- Secure storage of API keys.
+- Validation of uploaded files.
+- Proper handling of errors and unauthorized access.
 
-## Vision du projet
+## Project Vision
 
-InterviewAI Coach ambitionne de devenir un véritable assistant personnel de préparation aux entretiens d'embauche.
+InterviewAI Coach aims to become a true personal assistant for job interview preparation.
 
-Au-delà de la simple génération de questions, la vision est de proposer un accompagnement intelligent capable de comprendre le profil d'un candidat, de simuler des situations professionnelles réalistes, d'évaluer ses réponses et de l'aider à progresser au fil de ses entraînements.
+Beyond simply generating questions, the vision is to provide intelligent coaching that can understand a candidate's profile, simulate realistic professional situations, evaluate their answers, and help them improve over the course of their practice sessions.
 
-**L'objectif : transformer chaque préparation en une opportunité de progresser et d'aborder son prochain entretien avec davantage de confiance.**
+**The goal: turn every preparation into an opportunity to improve and to approach your next interview with greater confidence.**
 
 ---
 
-## Auteur
+## Author
 
-**Projet : InterviewAI Coach**
+**Project: InterviewAI Coach**
 
-Développé dans le cadre d'un projet personnel de conception et de développement d'une application SaaS intégrant l'intelligence artificielle.
+Developed as a personal project to design and build a SaaS application that integrates artificial intelligence.
 
 ---
 
