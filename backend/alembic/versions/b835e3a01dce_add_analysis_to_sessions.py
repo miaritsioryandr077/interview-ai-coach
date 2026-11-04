@@ -19,10 +19,15 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    """Ajoute la colonne analysis (JSON) sur interview_sessions."""
+    """Ajoute la colonne analysis (JSON/JSONB) sur interview_sessions."""
+    bind = op.get_bind()
+    dialect = bind.dialect.name
+    column_type = (
+        sa.dialects.postgresql.JSONB() if dialect == "postgresql" else sa.JSON()
+    )
     op.add_column(
         "interview_sessions",
-        sa.Column("analysis", sa.JSON(), nullable=True),
+        sa.Column("analysis", column_type, nullable=True),
     )
 
 

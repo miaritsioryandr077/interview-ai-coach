@@ -6,6 +6,8 @@ backend/.venv/
 .pytest_cache/
 
 # Environment Variables
+.env
+.env.local
 backend/.env
 frontend/.env
 frontend/.env.local
