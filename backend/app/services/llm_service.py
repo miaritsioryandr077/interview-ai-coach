@@ -1,5 +1,7 @@
 import json
 import logging
+from typing import Optional
+
 import httpx
 from app.core.config import settings
 from fastapi import HTTPException
@@ -143,6 +145,125 @@ Réponds STRICTEMENT en JSON avec ce format:
         import json as _json
         return _json.loads(content)
 
+
+    async def transcribe_audio(self, audio_path: str, mime_type: str) -> str:
+        """Transcrit un fichier audio en français via Gemini (API native, httpx).
+
+        Le fichier est envoyé en base64 dans un part `inline_data` via l'API
+        native (pas de File API : inutile pour des réponses de quelques minutes).
+        Un retry unique est effectué sur timeout / erreur 5xx.
+        """
+        import asyncio
+        import base64
+
+        api_key = settings.GEMINI_API_KEY
+        if not api_key:
+            raise HTTPException(
+                status_code=502,
+                detail="Transcription indisponible : clé API Gemini non configurée.",
+            )
+
+        prompt = (
+            "Transcris fidèlement en français l'audio ci-joint, qui est la réponse "
+            "orale d'un candidat à une question d'entretien d'embauche. "
+            "Règles : renvoie uniquement le texte transcrit, sans commentaire, sans "
+            "introduction, sans guillemets. Conserve la ponctuation et les majuscules. "
+            "Si l'audio est inaudible ou vide, renvoie une chaîne vide."
+        )
+
+        with open(audio_path, "rb") as f:
+            audio_b64 = base64.b64encode(f.read()).decode("ascii")
+
+        # Modèle dédié si configuré, sinon la liste de repli habituelle.
+        models = [settings.GEMINI_TRANSCRIPTION_MODEL]
+        if self.provider == "gemini":
+            models += [m for m in self.models if m not in models]
+        base_url = getattr(
+            self, "gemini_base_url", "https://generativelanguage.googleapis.com/v1beta/models"
+        )
+
+        async def _attempt() -> str:
+            last_error: Optional[Exception] = None
+            async with httpx.AsyncClient() as client:
+                for model in models:
+                    url = f"{base_url}/{model}:generateContent"
+                    try:
+                        response = await client.post(
+                            url,
+                            headers={
+                                "Content-Type": "application/json",
+                                "x-goog-api-key": api_key,
+                            },
+                            json={
+                                "contents": [
+                                    {
+                                        "parts": [
+                                            {"text": prompt},
+                                            {
+                                                "inline_data": {
+                                                    "mime_type": mime_type,
+                                                    "data": audio_b64,
+                                                }
+                                            },
+                                        ]
+                                    }
+                                ],
+                                "generationConfig": {"maxOutputTokens": 4096},
+                            },
+                            timeout=settings.TRANSCRIPTION_TIMEOUT_SECONDS,
+                        )
+                        response.raise_for_status()
+                        data = response.json()
+                        try:
+                            candidate = (data.get("candidates") or [{}])[0]
+                            parts = (candidate.get("content") or {}).get("parts") or []
+                            text = "".join(p.get("text", "") for p in parts)
+                        except (IndexError, AttributeError, TypeError):
+                            text = ""
+                        if not text.strip():
+                            # Contenu bloqué par les filtres ou audio inaudible.
+                            logger.warning(
+                                "Transcription Gemini vide avec le modèle %s", model
+                            )
+                            continue
+                        return text.strip()
+                    except httpx.HTTPStatusError as e:
+                        status = e.response.status_code
+                        logger.warning(
+                            "Transcription Gemini %s échouée (HTTP %s) : %s",
+                            model,
+                            status,
+                            e.response.text[:500],
+                        )
+                        last_error = e
+                        if status not in (404, 429, 500, 503):
+                            raise
+                if last_error:
+                    raise last_error
+                return ""
+
+        last_exc: Optional[Exception] = None
+        for attempt in range(2):
+            try:
+                return await _attempt()
+            except Exception as e:  # noqa: BLE001 - on normalise en 502 plus bas
+                last_exc = e
+                status = getattr(getattr(e, "response", None), "status_code", None)
+                is_timeout = isinstance(e, (httpx.TimeoutException, TimeoutError))
+                is_5xx = status is not None and 500 <= status < 600
+                if attempt == 0 and (is_timeout or is_5xx):
+                    await asyncio.sleep(1.0)
+                    continue
+                break
+
+        logger.error("Transcription Gemini échouée : %r", last_exc)
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                "La transcription audio a échoué (service IA indisponible). "
+                "Votre réponse précédente a été conservée, vous pouvez réessayer."
+            ),
+        )
 
     async def _call_gemini(self, prompt: str, timeout: float = 120.0, response_schema: dict | None = None) -> str:
         # Appelle l'API native Gemini en essayant chaque modèle de repli.

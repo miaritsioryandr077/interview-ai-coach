@@ -1,14 +1,15 @@
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 from app.api.deps import get_current_user, get_db
 from app.models.user import User
 from app.repositories.session import session_repository
 from app.schemas.analysis import AnalysisResponse
-from app.schemas.response import ResponseCreate
+from app.schemas.response import ResponseCreate, TranscriptionResponse
 from app.schemas.response import ResponseResponse as ResponseSchema
 from app.schemas.session import SessionResponse
+from app.services.audio_service import audio_service
 from app.services.interview_service import interview_service
 
 router = APIRouter()
@@ -44,6 +45,38 @@ def save_response(
     return interview_service.save_response(
         db, current_user, session_id, payload.question_id, payload.text
     )
+
+
+@router.post(
+    "/{session_id}/responses/{question_id}/audio",
+    response_model=ResponseSchema,
+    status_code=201,
+)
+async def upload_response_audio(
+    session_id: int,
+    question_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Enregistre la réponse vocale (webm/wav/mp3/ogg, 10 Mo max) d'une question."""
+    return audio_service.upload_audio(
+        db, current_user, session_id, question_id, file
+    )
+
+
+@router.post(
+    "/{session_id}/responses/{question_id}/transcribe",
+    response_model=TranscriptionResponse,
+)
+async def transcribe_response_audio(
+    session_id: int,
+    question_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Transcrit l'audio de la réponse via Gemini et met à jour son texte."""
+    return await audio_service.transcribe(db, current_user, session_id, question_id)
 
 
 @router.post("/{session_id}/analyze", response_model=AnalysisResponse)

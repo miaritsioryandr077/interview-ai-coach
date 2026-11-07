@@ -43,5 +43,15 @@ class ResponseRepository:
         db.refresh(db_response)
         return db_response
 
+    def set_audio_path(
+        self, db: DBSession, db_response: Response, audio_path: str
+    ) -> Response:
+        """Associe (ou remplace) le fichier audio d'une réponse."""
+        db_response.answer_audio_path = audio_path
+        db.add(db_response)
+        db.commit()
+        db.refresh(db_response)
+        return db_response
+
 
 response_repository = ResponseRepository()

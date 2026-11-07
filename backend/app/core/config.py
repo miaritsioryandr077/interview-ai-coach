@@ -24,6 +24,19 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int = 5 * 1024 * 1024  # 5MB
     ALLOWED_MIME_TYPES: list = ["application/pdf"]
 
+    # Réponses vocales (simulation d'entretien à l'oral)
+    AUDIO_UPLOAD_DIR: str = "uploads/audio"
+    MAX_AUDIO_SIZE: int = 10 * 1024 * 1024  # 10MB
+    ALLOWED_AUDIO_MIME_TYPES: list = [
+        "audio/webm",
+        "audio/wav",
+        "audio/mpeg",
+        "audio/ogg",
+    ]
+    # Modèle Gemini multimodal utilisé pour la transcription audio.
+    GEMINI_TRANSCRIPTION_MODEL: str = "gemini-2.0-flash"
+    TRANSCRIPTION_TIMEOUT_SECONDS: float = 120.0
+
     # API Keys
     OPENAI_API_KEY: Optional[str] = None
     GROQ_API_KEY: Optional[str] = None
@@ -45,6 +58,15 @@ class Settings(BaseSettings):
 
     def get_database_url(self) -> str:
         return self.SQLALCHEMY_DATABASE_URI
+
+    @computed_field
+    @property
+    def AUDIO_UPLOAD_PATH(self) -> Path:
+        """Chemin absolu du dossier des réponses vocales."""
+        path = Path(self.AUDIO_UPLOAD_DIR)
+        if not path.is_absolute():
+            path = Path(__file__).resolve().parents[2] / path
+        return path
 
 
 settings = Settings()

@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, field_validator
 
@@ -27,5 +28,14 @@ class ResponseResponse(ResponseBase):
     id: int
     session_id: int
     created_at: datetime
+    answer_audio_path: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class TranscriptionResponse(BaseModel):
+    """Résultat de la transcription d'une réponse vocale."""
+
+    question_id: int
+    text: str
+    response: ResponseResponse

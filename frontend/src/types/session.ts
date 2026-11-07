@@ -8,6 +8,14 @@ export interface InterviewResponse {
   question_id: number;
   text: string;
   created_at: string;
+  /** Chemin serveur du fichier audio (réponse vocale), null si réponse textuelle. */
+  answer_audio_path?: string | null;
+}
+
+export interface TranscriptionResult {
+  question_id: number;
+  text: string;
+  response: InterviewResponse;
 }
 
 export interface InterviewSession {

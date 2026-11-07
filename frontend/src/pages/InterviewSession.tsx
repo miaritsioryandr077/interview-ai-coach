@@ -5,14 +5,22 @@ import {
   ArrowRight,
   CheckCircle2,
   Loader2,
-  MicOff,
+  Mic,
+  RotateCcw,
   Send,
   Sparkles,
+  Square,
+  Wand2,
 } from "lucide-react";
 import { InterviewSession as InterviewSessionData } from "../types/session";
 import { sessionService } from "../services/sessionService";
 import { contextService } from "../services/contextService";
 import { Context } from "../types/context";
+import {
+  MAX_RECORDING_SECONDS,
+  formatDuration,
+  useAudioRecorder,
+} from "../hooks/useAudioRecorder";
 
 export const InterviewSession: React.FC = () => {
   const { sessionId } = useParams<{ sessionId: string }>();
@@ -31,6 +39,24 @@ export const InterviewSession: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [finished, setFinished] = useState(false);
 
+  // Réponses vocales : enregistrement micro puis transcription IA.
+  const recorder = useAudioRecorder();
+  const [audioBusy, setAudioBusy] = useState(false);
+  const [audioNotice, setAudioNotice] = useState<string | null>(null);
+  const [hasAudio, setHasAudio] = useState<Record<number, boolean>>({});
+  // URL de pré-écoute de l'enregistrement (révoquée à chaque changement).
+  const [recordingUrl, setRecordingUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!recorder.blob) {
+      setRecordingUrl(null);
+      return;
+    }
+    const url = URL.createObjectURL(recorder.blob);
+    setRecordingUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [recorder.blob]);
+
   // Chargement initial de la session et du contexte (titre de la préparation).
   useEffect(() => {
     const load = async () => {
@@ -42,10 +68,13 @@ export const InterviewSession: React.FC = () => {
 
         // Reprise : on recharge les réponses déjà enregistrées.
         const restored: Record<number, string> = {};
+        const restoredAudio: Record<number, boolean> = {};
         s.responses.forEach((r) => {
           restored[r.question_id] = r.text;
+          if (r.answer_audio_path) restoredAudio[r.question_id] = true;
         });
         setAnswers(restored);
+        setHasAudio(restoredAudio);
 
         // Positionne sur la première question sans réponse.
         const firstUnanswered = s.questions.findIndex((q) => !restored[q.id]);
@@ -81,6 +110,9 @@ export const InterviewSession: React.FC = () => {
     if (currentQuestion) {
       setAnswerText(answers[currentQuestion.id] ?? "");
     }
+    // Un enregistrement en cours ne doit pas suivre la navigation.
+    recorder.reset();
+    setAudioNotice(null);
   }, [currentIndex, currentQuestion?.id]);
 
   // Auto-sauvegarde différée pour éviter la perte en cas d'actualisation.
@@ -130,6 +162,33 @@ export const InterviewSession: React.FC = () => {
     }
   };
 
+  // Envoie l'enregistrement au backend puis lance la transcription IA.
+  const handleTranscribe = async () => {
+    if (!session || !currentQuestion || !recorder.blob || audioBusy) return;
+    const questionId = currentQuestion.id;
+    setAudioBusy(true);
+    setError(null);
+    setAudioNotice(null);
+    try {
+      await sessionService.uploadResponseAudio(session.id, questionId, recorder.blob);
+      setHasAudio((prev) => ({ ...prev, [questionId]: true }));
+
+      const result = await sessionService.transcribeResponse(session.id, questionId);
+      setAnswers((prev) => ({ ...prev, [questionId]: result.text }));
+      setAnswerText(result.text);
+      setSaveStatus("saved");
+      setAudioNotice("Transcription terminée. Relisez et corrigez si besoin.");
+      recorder.reset();
+    } catch (err: any) {
+      setError(
+        err.message ||
+          "La transcription a échoué. Votre enregistrement est conservé, vous pouvez réessayer.",
+      );
+    } finally {
+      setAudioBusy(false);
+    }
+  };
+
   const handleValidate = async () => {
     if (!session || !currentQuestion || saving) return;
     if (!answerText.trim()) {
@@ -144,6 +203,10 @@ export const InterviewSession: React.FC = () => {
 
   const handleComplete = async () => {
     if (!session || completing) return;
+    if (recorder.status === "recording") {
+      setError("Arrêtez l'enregistrement en cours avant de terminer l'entretien.");
+      return;
+    }
     try {
       setCompleting(true);
       setError(null);
@@ -278,6 +341,87 @@ export const InterviewSession: React.FC = () => {
           {currentQuestion.text}
         </p>
 
+        {/* Réponse vocale : enregistrement micro puis transcription IA. */}
+        <div className="rounded-xl border border-gray-800 bg-gray-900/40 p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-3">
+            {recorder.status === "recording" ? (
+              <button
+                onClick={recorder.stop}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-lg transition"
+              >
+                <Square className="w-4 h-4" /> Arrêter
+                <span className="tabular-nums">
+                  {formatDuration(recorder.seconds)} / {formatDuration(MAX_RECORDING_SECONDS)}
+                </span>
+              </button>
+            ) : (
+              <button
+                onClick={recorder.start}
+                disabled={audioBusy || saving}
+                className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
+              >
+                <Mic className="w-4 h-4" />
+                {recorder.blob ? "Réenregistrer" : "Répondre à l'oral"}
+              </button>
+            )}
+
+            {recorder.status === "recording" && (
+              <span className="flex items-center gap-2 text-sm text-red-400">
+                <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
+                Enregistrement en cours…
+              </span>
+            )}
+
+            {recorder.status === "stopped" && recorder.blob && recordingUrl && (
+              <>
+                <audio
+                  controls
+                  src={recordingUrl}
+                  className="h-9 max-w-full"
+                />
+                <button
+                  onClick={handleTranscribe}
+                  disabled={audioBusy || saving}
+                  className="flex items-center gap-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white text-sm font-semibold rounded-lg transition disabled:opacity-50"
+                >
+                  {audioBusy ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Transcription…
+                    </>
+                  ) : (
+                    <>
+                      <Wand2 className="w-4 h-4" /> Transcrire
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={recorder.reset}
+                  disabled={audioBusy}
+                  className="flex items-center gap-1 text-xs text-gray-400 hover:text-white transition disabled:opacity-50"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" /> Annuler
+                </button>
+              </>
+            )}
+          </div>
+
+          {recorder.error && (
+            <p className="text-xs text-amber-400">{recorder.error}</p>
+          )}
+          {audioNotice && (
+            <p className="text-xs text-emerald-400">{audioNotice}</p>
+          )}
+          {hasAudio[currentQuestion.id] && !recorder.blob && (
+            <p className="text-xs text-gray-500">
+              Un enregistrement vocal est associé à cette question.
+            </p>
+          )}
+          <p className="text-xs text-gray-500">
+            Enregistrez votre réponse à l'oral : elle sera transcrite en texte, que
+            vous pourrez relire et corriger avant de valider.
+          </p>
+        </div>
+
         <div className="pt-2">
           <label className="block text-sm font-medium text-gray-400 mb-2">
             Votre réponse :
@@ -286,16 +430,16 @@ export const InterviewSession: React.FC = () => {
             value={answerText}
             onChange={(e) => setAnswerText(e.target.value)}
             rows={8}
-            disabled={saving}
-            placeholder="Rédigez votre réponse ici..."
+            disabled={saving || audioBusy}
+            placeholder="Rédigez votre réponse ici, ou enregistrez-la à l'oral…"
             className="w-full bg-gray-900 border-gray-700 rounded-lg px-4 py-3 text-white focus:border-brand-500 outline-none resize-y disabled:opacity-60"
           />
         </div>
 
         <div className="flex items-center justify-between text-xs text-gray-500">
           <div className="flex items-center gap-2">
-            <MicOff className="w-4 h-4" />
-            Entretien textuel uniquement — la saisie vocale arrivera plus tard.
+            <Mic className="w-4 h-4" />
+            Réponse écrite ou orale (transcription IA)
           </div>
           <div className="flex items-center gap-2">
             {saveStatus === 'saving' && (

@@ -40,18 +40,17 @@ The goal is to offer a personalized, interactive, and evolving preparation exper
 - **AI-powered question generation** — Creation of questions tailored to the profile and the target position.
 - **Text-based interview simulation** — Questions and answers typed by the user.
 - **Answer persistence** — Answers are saved in the database.
+- **Voice answers** — The answer can be recorded with the microphone (webm/wav/mp3/ogg, 10 MB max).
+- **Speech transcription** — Recorded answers are transcribed to French text by Gemini, then reviewed and corrected by the user before validation.
+- **AI analysis of answers** — Score, criteria, strengths, weaknesses and advice for a completed session.
+- **Progress dashboard** — Follow-up of scores and evolution across sessions.
 
 ### Features in Progress and Planned
 
 - Full interview history.
 - Detailed review of questions and answers.
 - Resuming unfinished simulations.
-- Intelligent analysis of answers.
-- Performance evaluation and scoring.
 - Personalized recommendations to improve answers.
-- Progress dashboard.
-- Voice interview simulation.
-- Speech recognition and transcription.
 
 ## Technologies Used
 
@@ -216,7 +215,7 @@ The general workflow of InterviewAI Coach follows these steps:
 4. They create a preparation by linking the two documents.
 5. The artificial intelligence analyzes the context and generates personalized questions.
 6. The user starts an interview simulation.
-7. They answer the questions.
+7. They answer the questions, by typing or by recording their voice (the recording is transcribed to text).
 8. Their answers are saved so they can be reviewed and used later.
 9. Upcoming analysis features will provide personalized feedback and let them track their progress.
 
@@ -237,9 +236,9 @@ The general workflow of InterviewAI Coach follows these steps:
 - [ ] AI analysis of answers
 - [ ] Performance evaluation
 - [ ] Personalized tips and recommendations
-- [ ] Progress dashboard
-- [ ] Voice simulation
-- [ ] Automatic transcription of answers
+- [x] Progress dashboard
+- [x] Voice simulation
+- [x] Automatic transcription of answers
 
 ## Security
 
