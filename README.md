@@ -113,7 +113,7 @@ Before you begin, install:
 ```bash
 git clone https://github.com/YOUR-USERNAME/interview-ai-coach.git
 
-cd InterviewAI-Coach
+cd interview-ai-coach
 ```
 
 ### 3. Configure Environment Variables
