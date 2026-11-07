@@ -111,7 +111,7 @@ Before you begin, install:
 ### 2. Clone the Repository
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/InterviewAI-Coach.git
+git clone https://github.com/YOUR-USERNAME/interview-ai-coach.git
 
 cd InterviewAI-Coach
 ```
